@@ -1,0 +1,4 @@
+g++ -Wall -Werror -O3 -std=c++11 -c src/fast_align.cpp src/ttables.cpp src/LM.cpp src/LogDouble.cpp -o fast_align
+g++: fatal error: cannot specify -o with -c, -S or -E with multiple files
+compilation terminated.
+make: *** [fast_align] エラー 4
