@@ -20,3 +20,10 @@ fast_align
 
 # Eclipse files
 .project
+
+# dump files
+dump.*
+
+# executables
+a.out 
+fast_align
