@@ -26,4 +26,4 @@ dump.*
 
 # executables
 a.out 
-fast_align
+aligner

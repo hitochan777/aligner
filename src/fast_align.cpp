@@ -5,7 +5,12 @@
 #include "da.h"
 #include "LM.h"
 
+#include <boost/functional/hash.hpp>
+#include <boost/program_options.hpp>
+#include <boost/program_options/variables_map.hpp>
+
 using namespace std;
+namespace po = boost::program_options;
 
 struct PairHash {
 	size_t operator()(const pair<short,short>& x) const {
@@ -90,134 +95,74 @@ void printProcess(FILE* fp){
 	return ;
 }
 
-struct option options[] = {
-	{"input",required_argument, 0,'i'},
-	{"finput",required_argument, 0,0},
-	{"einput",required_argument,0,0},
-	{"train_line",required_argument,0,'l'},
-	{"testset",required_argument,0,0},
-	{"ftestset",required_argument,0,0},
-	{"etestset",required_argument,0,0},
-	{"test_align_output_file",required_argument,0,0},
-	{"train_align_output_file",required_argument,0,0},
-	{"train_process_output_file",required_argument,0,0},
-	{"test_output_file",required_argument,0,0},
-	{"history",required_argument,0,'h'},
-	{"smoothing",required_argument,0,0},
-	{"reverse",no_argument,&is_reverse,1},
-	{"iterations",required_argument, 0,'I'},
-	{"favor_diagonal",no_argument,&favor_diagonal,0},
-	{"p0",required_argument, 0,'p'},
-	{"diagonal_tension",required_argument, 0,'T'},
-	{"optimize_tension",no_argument,&optimize_tension,1},
-	{"variational_bayes",no_argument,&variational_bayes,1},
-	{"alpha",required_argument, 0,'a'},
-	{"no_null_word",no_argument,&no_null_word,1},
-	{"conditional_probabilities", required_argument, 0,'c'},
-	{0,0,0,0}
-};
+bool verifyConf(po::variables_map* conf){
+	return conf->count("help") ||
+		(conf->count("input")!=0 && (conf->count("einput")!=0 || conf->count("finput")!=0)) ||
+		(conf->count("input")==0 && conf->count("einput")==0 && conf->count("finput")==0) ||
+		(conf->count("testset")!=0 && (conf->count("etestset")!=0 || conf->count("ftestset")!=0)) ||
+		((conf->count("etestset")==0) ^ (conf->count("ftestset")==0));
+}
 
-bool InitCommandLine(int argc, char** argv){
-	while (1) {
-		int oi;
-		int c = getopt_long(argc, argv, "i:rI:dp:T:ova:Nc:l:h:", options, &oi);
-		if (c == -1){
-			break;
-		}
-		switch(c) {
-			case 0:{
-				       string opt = options[oi].name;
-				       switch(str2int(opt.c_str())){
-					       case str2int("finput"):
-						       ffname = optarg;
-						       break;
-					       case str2int("einput"):
-						       efname = optarg;
-						       break;
-					       case str2int("testset"):
-						       testset = optarg;
-						       break;
-					       case str2int("ftestset"):	
-						       ftestset = optarg;
-						       break;
-					       case str2int("etestset"):
-						       etestset = optarg;
-						       break;
-					       case str2int("test_align_output_file"):
-						       break;
-					       case str2int("train_align_output_file"):
-						       break;
-					       case str2int("train_process_output_file"):
-						       break;
-					       case str2int("test_output_file"):
-						       break;
-					       default:
-						       //some error message here
-						       break;
-				       }
-				       break;
-			       }
-			case 'i': 
-			       fname = optarg;
-			       break;
-			case 'r':
-			       is_reverse = 1;
-			       break;
-			case 'I':
-			       ITERATIONS = atoi(optarg);
-			       break;
-			case 'd':
-			       favor_diagonal = 1;
-			       break;
-			case 'p':
-			       prob_align_null = atof(optarg);
-			       break;
-			case 'T':
-			       diagonal_tension = atof(optarg);
-			       break;
-			case 'o':
-			       optimize_tension = 1;
-			       break;
-			case 'v':
-			       variational_bayes = 1;
-			       break;
-			case 'a':
-			       alpha = atof(optarg);
-			       break;
-			case 'N':
-			       no_null_word = 1;
-			       break;
-			case 'c':
-			       conditional_probability_filename = optarg;
-			       break;
-			case 'l':
-			      	train_line = atoi(optarg); 
-			       break;
-			default:
-			       return false;
-		}
+bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
+	po::options_description opts("Configuration options");
+	opts.add_options()
+		("input,i",po::value<string>(),"Parallel corpus input file")
+		("finput",po::value<string>(),"source corpus input file")
+		("einput",po::value<string>(),"target corpus input file")
+		("reverse,r","Reverse estimation (swap source and target during training)")
+		("iterations,I",po::value<unsigned>()->default_value(5),"Number of iterations of EM training")
+		//("bidir,b", "Run bidirectional alignment")
+		("favor_diagonal,d", "Use a static alignment distribution that assigns higher probabilities to alignments near the diagonal")
+		("prob_align_null", po::value<double>()->default_value(0.08), "When --favor_diagonal is set, what's the probability of a null alignment?")
+		("diagonal_tension,T", po::value<double>()->default_value(4.0), "How sharp or flat around the diagonal is the alignment distribution (<1 = flat >1 = sharp)")
+		("train_line,l",po::value<int>()->default_value(-1),"how many lines to use when extracting sentences from training corpus.")
+		("optimize_tension,o", "Optimize diagonal tension during EM")
+		("variational_bayes,v","Infer VB estimate of parameters under a symmetric Dirichlet prior")
+		("alpha,a", po::value<double>()->default_value(0.01), "Hyperparameter for optional Dirichlet prior")
+		("no_null_word,N","Do not generate from a null token")
+		("output_parameters,p", po::value<string>(), "Write model parameters to file")
+		("beam_threshold,t",po::value<double>()->default_value(-4),"When writing parameters, log_10 of beam threshold for writing parameter (-10000 to include everything, 0 max parameter only)")
+		("hide_training_alignments,H", "Hide training alignments (only useful if you want to use -x option and just compute testset statistics)")
+		("testset,x", po::value<string>(), "After training completes, compute the log likelihood of this set of sentence pairs under the learned model")
+		("ftestset", po::value<string>(), "Testset for source language. This must be paired with etestset and cannot be paired with testset.")
+		("etestset", po::value<string>(), "Testset for target language. This must be paired with ftestset and cannot be paired with testset.")
+		("test_align_output_file",po::value<string>(),"alignment result file for testdata")
+		("train_align_output_file",po::value<string>(),"alignment result file for training data")
+		("train_process_output_file",po::value<string>(),"ouput file for training process")
+		("test_output_file",po::value<string>(),"output file for testdata except for alignment result")
+		("no_add_viterbi,V","When writing model parameters, do not add Viterbi alignment points (may generate a grammar where some training sentence pairs are unreachable)")
+		("force_align,f",po::value<string>(), "Load previously written parameters to 'force align' input. Set --diagonal_tension and --mean_srclen_multiplier as estimated during training.")
+		("mean_srclen_multiplier,m",po::value<double>()->default_value(1), "When --force_align, use this source length multiplier")
+		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.");
+	po::options_description clo("Command line options");
+	clo.add_options()
+		("config", po::value<string>(), "Configuration file")
+		("help,h", "Print this help message and exit");
+	po::options_description dconfig_options, dcmdline_options;
+	dconfig_options.add(opts);
+	dcmdline_options.add(opts).add(clo);
+
+	po::store(parse_command_line(argc, argv, dcmdline_options), *conf);
+	if (conf->count("config")) {
+		ifstream config((*conf)["config"].as<string>().c_str());
+		po::store(po::parse_config_file(config, dconfig_options), *conf);
+	}
+	po::notify(*conf);
+	if (verifyConf(conf)) {
+		cerr << "Usage " << argv[0] << " [OPTIONS] -i corpus.fr-en\n";
+		cerr << dcmdline_options << endl;
+		return false;
 	}
 	return true;
 }
 
 int main(int argc, char** argv) {
-	if (!InitCommandLine(argc, argv)) {
-		cerr << "Usage: " << argv[0] << " -i file.fr-en\n"
-			<< " Standard options ([USE] = strongly recommended):\n"
-			<< "  -i: [REQ] Input parallel corpus\n"
-			<< "  -v: [USE] Use Dirichlet prior on lexical translation distributions\n"
-			<< "  -d: [USE] Favor alignment points close to the monotonic diagonoal\n"
-			<< "  -o: [USE] Optimize how close to the diagonal alignment points should be\n"
-			<< "  -r: Run alignment in reverse (condition on target and predict source)\n"
-			<< "  -c: Output conditional probability table\n"
-			<< " Advanced options:\n"
-			<< "  -I: number of iterations in EM training (default = 5)\n"
-			<< "  -p: p_null parameter (default = 0.08)\n"
-			<< "  -N: No null word\n"
-			<< "  -a: alpha parameter for optional Dirichlet prior (default = 0.01)\n"
-			<< "  -T: starting lambda for diagonal distance parameter (default = 4)\n";
+	po::variables_map conf;
+
+	if (!InitCommandLine(argc, argv, &conf)){
 		return 1;
 	}
+
 	bool use_null = !no_null_word;
 	if (variational_bayes && alpha <= 0.0) {
 		cerr << "--alpha must be > 0\n";
@@ -225,7 +170,7 @@ int main(int argc, char** argv) {
 	}
 	double prob_align_not_null = 1.0 - prob_align_null;
 	const unsigned kNULL = d.Convert("<eps>");
-	TTable t2s;
+	TTable t2s(HISTORY + 1);
 	double tot_len_ratio = 0;
 	double mean_srclen_multiplier = 0;
 	vector<double> probs;
@@ -456,9 +401,9 @@ int main(int argc, char** argv) {
 		}
 	}
 	/*if (!conditional_probability_filename.empty()) {
-		cerr << "conditional probabilities: " << conditional_probability_filename << endl;
-		t2s.ExportToFile(conditional_probability_filename.c_str(), d);
-	}*/
+	  cerr << "conditional probabilities: " << conditional_probability_filename << endl;
+	  t2s.ExportToFile(conditional_probability_filename.c_str(), d);
+	  }*/
 
 	if(tof!=stderr){
 		fclose(tof);

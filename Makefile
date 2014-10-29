@@ -1,10 +1,19 @@
 CC=g++
-CFLAG=-std=c++11 -Wall
-OBJGROUP=src/fast_align.o src/LM.o src/LogDouble.o src/Vocab.o src/ttables.o src/FracType.o
+CFLAGS=-c -Wall -std=c++11
+LDFLAGS=
+LIBRARY=-lboost_program_options
+SRCDIR=src
+SOURCES=$(SRCDIR)/FracType.cpp  $(SRCDIR)/LM.cpp  $(SRCDIR)/LogDouble.cpp  $(SRCDIR)/Vocab.cpp  $(SRCDIR)/corpus.cpp  $(SRCDIR)/fast_align.cpp  $(SRCDIR)/ttables.cpp  $(SRCDIR)/utils.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
+	EXECUTABLE=aligner
 
-all: fast_align
+all: $(SOURCES) $(EXECUTABLE)
 
-fast_align: $(OBJGROUP)
-	$(CC) -o fast_align $(OBJGROUP)
+$(EXECUTABLE): $(OBJECTS) 
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBRARY)
+
+.cpp.o:
+	$(CC) $(CFLAGS) $< -o $@
+
 clean:
-	rm *.o
+	rm -rf *.o $(EXECUTABLE)
