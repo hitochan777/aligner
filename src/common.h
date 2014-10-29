@@ -12,35 +12,28 @@
 #include <array>
 #include <algorithm>
 #include <set>
-// As of OS X 10.9, it looks like C++ TR1 headers are removed from the
-// search paths. Instead, we can include C++11 headers.
-#if defined(__APPLE__)
-#include <AvailabilityMacros.h>
-#endif
-
-#if defined(__APPLE__) && defined(MAC_OS_X_VERSION_10_9) && \
-	MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_9
 #include <unordered_map>
-#include <functional>
-#else // Assuming older OS X, Linux or similar platforms
-#include <tr1/unordered_map>
-#include <tr1/functional>
-namespace std {
-	using tr1::unordered_map;
-	using tr1::hash;
-} // namespace std
-#endif
 
-enum Smoothing {KN,WB,KW,NO,VB};
+#include <boost/functional/hash.hpp>
+
+enum Smoothing {KN,NO,VB};
 
 using namespace std;
 
+//http://stackoverflow.com/questions/10405030/c-unordered-map-fail-when-used-with-a-vector-as-key
+template <typename Container> // we can make this generic for any container [1]
+struct container_hash {
+	size_t operator()(Container const& c) const {
+		return boost::hash_range(c.begin(), c.end());
+	}
+};
+
 /*****************************typedef********************************/
-typedef int WordID;
+typedef unsigned WordID;
 typedef vector<WordID> WordVector;
 typedef unordered_map<WordID, double> Word2Double;
 typedef vector<Word2Double> Word2Word2Double;
-typedef unordered_map<WordVector,Word2Double/*,container_hash<WordVector>*/ > WordVector2Word2Double;
+typedef unordered_map<WordVector,Word2Double,container_hash<WordVector> > WordVector2Word2Double;
 typedef vector<WordVector2Word2Double> VWV2WD;
 /********************************************************************/
 

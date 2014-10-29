@@ -1,10 +1,12 @@
 #ifndef CPYPDICT_H_
 #define CPYPDICT_H_
 
-#include "src/common.h"
+#include "common.h"
+
+using namespace std;
 
 class Dict {
-	typedef std::unordered_map<std::string, unsigned, std::hash<std::string> > Map;
+	typedef unordered_map<string, unsigned, std::hash<string> > Map;
 	public:
 	Dict() : b0_("<bad0>") {
 		words_.reserve(1000);
@@ -18,7 +20,7 @@ class Dict {
 		return (x == ' ' || x == '\t');
 	}
 
-	inline void ConvertWhitespaceDelimitedLine(const std::string& line, std::vector<unsigned>* out) {
+	inline void ConvertWhitespaceDelimitedLine(const string& line, WordVector* out) {
 		size_t cur = 0;
 		size_t last = 0;
 		int state = 0;
@@ -38,7 +40,7 @@ class Dict {
 			out->push_back(Convert(line.substr(last, cur - last)));
 	}
 
-	inline unsigned Convert(const std::string& word, bool frozen = false) {
+	inline WordID Convert(const string& word, bool frozen = false) {
 		Map::iterator i = d_.find(word);
 		if (i == d_.end()) {
 			if (frozen){
@@ -53,31 +55,37 @@ class Dict {
 		}
 	}
 
-	inline const std::string& Convert(const unsigned id) const {
+	inline const string& Convert(const WordID id) const {
 		if (id == 0){
 			return b0_;
 		}
 		return words_[id-1];
 	}
+
+	inline const string& Convert(const WordVector wv) const {
+		string str="";
+		for(unsigned int i = 0;i<wv.size();++i){
+			str+=Convert(wv[i])+" ";
+		}
+		return str;
+	}
+
 	private:
-	std::string b0_;
-	std::vector<std::string> words_;
+	string b0_;
+	vector<string> words_;
 	Map d_;
 };
 
-void ReadFromFile(const std::string& filename,
-		Dict* d,
-		std::vector<std::vector<unsigned> >* src,
-		std::set<unsigned>* src_vocab) {
+inline void ReadFromFile(const string& filename,Dict* d,vector<vector<unsigned> >* src,set<unsigned>* src_vocab) {
 	src->clear();
-	std::cerr << "Reading from " << filename << std::endl;
-	std::ifstream in(filename.c_str());
+	cerr << "Reading from " << filename << endl;
+	ifstream in(filename.c_str());
 	assert(in);
-	std::string line;
+	string line;
 	int lc = 0;
 	while(getline(in, line)) {
 		++lc;
-		src->push_back(std::vector<unsigned>());
+		src->push_back(vector<unsigned>());
 		d->ConvertWhitespaceDelimitedLine(line, &src->back());
 		for (unsigned i = 0; i < src->back().size(); ++i){
 			src_vocab->insert(src->back()[i]);

@@ -1,8 +1,9 @@
 #ifndef _TTABLES_H_
 #define _TTABLES_H_
 
-#include "src/common.h"
-#include "src/LM.h"
+#include "common.h"
+#include "LM.h"
+#include "corpus.h"
 
 struct Md {
 	static double digamma(double x) {
@@ -17,6 +18,10 @@ struct Md {
 		result += log(x)+(1./24.)*xx2-(7.0/960.0)*xx4+(31.0/8064.0)*xx4*xx2-(127.0/30720.0)*xx4*xx4;
 		return result;
 	}
+	static double log_poisson(unsigned x, const double& lambda) {
+		assert(lambda > 0.0);
+		return log(lambda) * x - lgamma(x + 1) - lambda;
+	}
 };
 
 class TTable {
@@ -24,25 +29,25 @@ class TTable {
 		TTable() {}
 
 		TTable(int _n);
-		inline double prob(const WordVector& e, const WordID& f) const;
-		inline double backoffProb(const WordVector& e, const WordID& f);
-		inline void Increment(const WordVector& e, const int& f);
-		inline void Increment(const WordVector& e, const int& f, double x);
+		double prob(const WordVector& e, const WordID& f) const;
+		double backoffProb(const WordVector& e, const WordID& f) const;
+		void Increment(const WordVector& e, const int& f);
+		void Increment(const WordVector& e, const int& f, double x);
 		void NormalizeVB(const double alpha);
 		void Normalize();
 		void knEstimate();
 		TTable& operator+=(const TTable& rhs);
-		void ShowCounts(int index);
-		void ShowCounts();
-		void ShowTTable(int index);
-		void ShowTTable();
+		void ShowCounts(int index, Dict& d);
+		void ShowCounts(Dict& d);
+		void ShowTTable(int index, Dict& d);
+		void ShowTTable(Dict& d);
 		static WordVector makeWordVector(WordVector& trg,int index,int history, WordID kNULL);
-		static enum Smoothing getSmoothMethod(std::string str);
-		void ExportToFile(const char* filename, Dict& d);
+		static enum Smoothing getSmoothMethod(string str);
+		//void ExportToFile(const char* filename, Dict& d);
 
 	private:
-		void _ShowCounts(int index);
-		void _ShowTTable(int index);
+		void _ShowCounts(int index,Dict& d);
+		void _ShowTTable(int index,Dict& d);
 	public:
 		VWV2WD ttables;
 		VWV2WD counts;

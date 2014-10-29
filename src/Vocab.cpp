@@ -42,10 +42,9 @@ remove(int id)
 
 int 
 Vocab::
-lookup(string* pWrd, vector<int>& context, int clen, bool forced)
+lookup(string* pWrd, WordVector& context, int clen, bool forced)
 {
-	for(;clen>0;clen--,pWrd++)
-	{
+	for(;clen>0;clen--,pWrd++){
 		context.push_back(lookup(*pWrd,forced));
 	}
 	return (int)context.size();
@@ -53,14 +52,13 @@ lookup(string* pWrd, vector<int>& context, int clen, bool forced)
 
 void 
 Vocab::
-reverse(vector<int>& context)
-{
+reverse(WordVector& context){
 	reverse(&context[0],(int)context.size());
 }
 
 void 
 Vocab::
-reverse(int* context, int len)
+reverse(WordID* context, int len)
 {
 	int hlen=len/2;
 	for(int i=0;i<hlen;i++)

@@ -1,12 +1,10 @@
 #ifndef LM_H
 #define LM_H
-
-#include "src/common.h"
-#include "src/ZMap.h"
-#include "src/Vocab.h"
-//#include "utils.h"
-#include "src/FracType.h"
-
+#include "common.h"
+#include "ZMap.h"
+#include "Vocab.h"
+#include "utils.h"
+#include "FracType.h"
 
 #define MAX_DISCOUNT_ORDER 5
 
@@ -29,13 +27,13 @@ class Node {
 			types.clear();
 			childs.clear();
 		}
-		void erase(int wrd);
+		void erase(WordID wrd);
 		void prune(double threshold);
 		void normalize();
 		double bow;
-		ZMap<int, double> probs;
-		ZMap<int, FracType> types;
-		ZMap<int, Node> childs;
+		ZMap<WordID, double> probs;
+		ZMap<WordID, FracType> types;
+		ZMap<WordID, Node> childs;
 };
 
 class LMStat {
@@ -52,7 +50,7 @@ class LMStat {
 				os<<i<<"-gram:"<<ngrams[i]<<endl;
 			}
 		}
-		vector<int> ngrams;
+		WordVector ngrams;
 		int nwrds;
 };
 
@@ -62,9 +60,9 @@ void calculateDiscount(vector<double>& coc, vector<double>& discount);
 
 class LM{
 	public:
-		Node* setNode(int* context, int clen);
-		Node* lookupNode(int* context, int clen);
-		double& setProb(int wrd, int* context, int clen);
+		Node* setNode(WordID* context, int clen);
+		Node* lookupNode(WordID* context, int clen);
+		double& setProb(WordID wrd, WordID* context, int clen);
 		void setOrder(int order);
 		void init(int order){
 			setOrder(order);
@@ -76,7 +74,7 @@ class LM{
 		void readPlainFile(string filename, double*& p_weight, unordered_map<string,FracType>& ngrams);
 		bool addOneLine(string& curline, int order, double*& p_weight, double threshold, double floor);
 		void addNgrams(unordered_map<string,pair<FracType,double>>& ngrams);
-		void addNgram();
+		void addNgram(WordVector& context, WordID wrd, double count);
 
 		void reComputeLowerCount();
 		void computeBOW(bool interpolate);
@@ -90,12 +88,12 @@ class LM{
 		void knEstimate(bool isBackward, bool interpolate, DiscountType dt, double* cutoff);
 		void normalize();
 
-		double& setBackoff(int* context, int clen);
-		double probBO(int wrd, int* context, int clen);
-		bool checkEntry(int wrd, int* context, int clen);
-		void stat(int wrd, int* context, int clen, LMStat& lmstat);
+		double& setBackoff(WordID* context, int clen);
+		double probBO(WordID wrd, WordID* context, int clen);
+		bool checkEntry(WordID wrd, WordID* context, int clen);
+		void stat(WordID wrd, WordID* context, int clen, LMStat& lmstat);
 
-		double sentLogProb(int* context, int slen, int order, LMStat* pStat);
+		double sentLogProb(WordID* context, int slen, int order, LMStat* pStat);
 		double sentLogProb(string& curline, int ord, LMStat* pStat=NULL);
 		void read(string filename);
 		void write(string filename);
@@ -135,12 +133,12 @@ class LM{
 			_numofGrams.clear();
 			_numofGrams.resize(n);	
 		}
-		void addBigram(int wrd, int context, double count){
+		void addBigram(WordID wrd, WordID context, double count){
 			if(count>1E-10){
 				addFracCount(wrd, &context, 1, count, count);
 			}
 		}
-		double bigramProb(int wrd, int context){
+		double bigramProb(WordID wrd, WordID context){
 			return exp10(probBO(wrd,&context,1));
 		}
 		void resetVocab();
@@ -150,23 +148,23 @@ class LM{
 			_numofGrams.clear();
 			calcNumOfGrams(_root,0);
 		}
-		Node* addFracCount(int wrd, int* context, int clen, double fcount, double ftype);
-		Node* addFracCount(int wrd, int* context, int clen, double fcount, FracType& ftype);
+		Node* addFracCount(WordID wrd, WordID* context, int clen, double fcount, double ftype);
+		Node* addFracCount(WordID wrd, WordID* context, int clen, double fcount, FracType& ftype);
 
 
-		void computeBOWByLayer(Node& node, vector<int>& context, int order, bool interpolate);
+		void computeBOWByLayer(Node& node, WordVector& context, int order, bool interpolate);
 		void calcNumOfGrams(Node& node, int order);
 		int readNumofGrams(ifstream& is);
 		void readNgram(ifstream& is, int order);
-		void print(ostream& os, Node& node, string sufix, vector<int>& context, int order, bool countOnly);
+		void print(ostream& os, Node& node, string sufix, WordVector& context, int order, bool countOnly);
 		void wbEstimate(Node& node);
-		void reComputeLowerCount(Node& node, vector<int>& context, int order);
+		void reComputeLowerCount(Node& node, WordVector& context, int order);
 		void clearCountsByLayer(Node& node, int order, int exception);
 		void collectCountofCount(Node& node, vector<double>& coc, int order,bool logrized);
-		void setKNcountsByLayer(Node& node, vector<int>& context, int order);
-		void setKNcountsByLayerTam(Node& node, vector<int>& context, int order, double threshold);
-		void setMissKNcountsByLayer(Node& node, vector<int>& context, int order);
-		void cleanBadEntriesByLayer(Node& node, vector<int>& context, int order);
+		void setKNcountsByLayer(Node& node, WordVector& context, int order);
+		void setKNcountsByLayerTam(Node& node, WordVector& context, int order, double threshold);
+		void setMissKNcountsByLayer(Node& node, WordVector& context, int order);
+		void cleanBadEntriesByLayer(Node& node, WordVector& context, int order);
 
 		vector<int> _numofGrams;
 		Node _root;

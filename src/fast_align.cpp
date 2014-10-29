@@ -1,9 +1,9 @@
 #include <getopt.h>
-#include "src/common.h"
-#include "src/corpus.h"
-#include "src/ttables.h"
-#include "src/da.h"
-#include "src/LM.h"
+#include "common.h"
+#include "ttables.h"
+#include "corpus.h"
+#include "da.h"
+#include "LM.h"
 
 using namespace std;
 
@@ -14,6 +14,33 @@ struct PairHash {
 };
 
 Dict d; // integerization map
+string conditional_probability_filename = "";
+int is_reverse = 0;
+int ITERATIONS = 5;
+int favor_diagonal = 0;
+double prob_align_null = 0.08;
+double diagonal_tension = 4.0;
+int optimize_tension = 0;
+int variational_bayes = 0;
+double alpha = 0.01;
+int no_null_word = 0;
+int train_line = -1;
+bool DO_TEST;
+bool ONE_TEST_FILE;
+bool ONE_INPUT_FILE;
+int HISTORY = 0;
+string testset,ftestset,etestset;
+string fname,ffname,efname;
+double likelihood = 0;
+double denom = 0.0;
+int lc = 0;
+bool flag = false;
+double c0 = 0;
+double emp_feat = 0;
+double toks = 0;
+double base2_likelihood;
+enum Smoothing smooth = NO;
+unordered_map<pair<short, short>, unsigned, PairHash> size_counts;
 
 void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 	static const unsigned kDIV = d.Convert("|||");
@@ -34,23 +61,33 @@ void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 	}
 }
 
-string input;
-string conditional_probability_filename = "";
-int is_reverse = 0;
-int ITERATIONS = 5;
-int favor_diagonal = 0;
-double prob_align_null = 0.08;
-double diagonal_tension = 4.0;
-int optimize_tension = 0;
-int variational_bayes = 0;
-double alpha = 0.01;
-int no_null_word = 0;
-bool DO_TEST;
-bool ONE_TEST_FILE;
-bool ONE_INPUT_FILE;
-int HISTORY = 0;
-string testset,ftestset,etestset;
-string fname,ffname,efname;
+void ParseLineFromSeparateFiles(const string& fline,const string& eline,vector<unsigned>* src,vector<unsigned>* trg){
+	static vector<unsigned> tmp;
+	src->clear();
+	trg->clear();
+	d.ConvertWhitespaceDelimitedLine(fline, &tmp);
+	for(unsigned i = 0;i < tmp.size();++i) {
+		src->push_back(tmp[i]);
+	}
+	tmp.clear();
+	d.ConvertWhitespaceDelimitedLine(eline, &tmp);
+	for(unsigned i = 0;i < tmp.size();++i) {
+		trg->push_back(tmp[i]);
+	}
+	return ;
+}
+
+void printProcess(FILE* fp){
+	fprintf(fp,"  log_e likelihood: %lf\n",likelihood);
+	fprintf(fp,"  log_2 likelihood: %lf\n",base2_likelihood);
+	fprintf(fp,"     cross entropy: %lf\n",(-base2_likelihood / denom));
+	fprintf(fp,"        perplexity: %lf\n",pow(2.0, -base2_likelihood / denom));
+	fprintf(fp,"      posterior p0: %lf\n",c0 / toks);
+	fprintf(fp," posterior al-feat: %lf\n",emp_feat);
+	//cerr << "     model tension: " << mod_feat / toks << endl;
+	fprintf(fp,"       size counts: %d\n",size_counts.size());
+	return ;
+}
 
 struct option options[] = {
 	{"input",required_argument, 0,'i'},
@@ -88,76 +125,76 @@ bool InitCommandLine(int argc, char** argv){
 		}
 		switch(c) {
 			case 0:{
-				string opt = options[oi].name;
-				switch(str2int(opt)){
-					case str2int("finput"):
-						ffname = optarg;
-						break;
-					case str2int("einput"):
-						efname = optarg;
-						break;
-					case str2int("testset"):
-						testset = optarg;
-						break;
-					case str2int("ftestset"):	
-						ftestset = optarg;
-						break;
-					case str2int("etestset"):
-						etestset = optarg;
-						break;
-					case str2int("test_align_output_file"):
-						break;
-					case str2int("train_align_output_file"):
-						break;
-					case str2int("train_process_output_file"):
-						break;
-					case str2int("test_output_file"):
-						break;
-					default:
-						//some error message here
-						break;
-				}
-				break;
-			}
+				       string opt = options[oi].name;
+				       switch(str2int(opt.c_str())){
+					       case str2int("finput"):
+						       ffname = optarg;
+						       break;
+					       case str2int("einput"):
+						       efname = optarg;
+						       break;
+					       case str2int("testset"):
+						       testset = optarg;
+						       break;
+					       case str2int("ftestset"):	
+						       ftestset = optarg;
+						       break;
+					       case str2int("etestset"):
+						       etestset = optarg;
+						       break;
+					       case str2int("test_align_output_file"):
+						       break;
+					       case str2int("train_align_output_file"):
+						       break;
+					       case str2int("train_process_output_file"):
+						       break;
+					       case str2int("test_output_file"):
+						       break;
+					       default:
+						       //some error message here
+						       break;
+				       }
+				       break;
+			       }
 			case 'i': 
-				input = optarg;
-			       	break;
+			       fname = optarg;
+			       break;
 			case 'r':
-			       	is_reverse = 1;
-			       	break;
+			       is_reverse = 1;
+			       break;
 			case 'I':
-			       	ITERATIONS = atoi(optarg);
-			       	break;
+			       ITERATIONS = atoi(optarg);
+			       break;
 			case 'd':
-			       	favor_diagonal = 1;
-			       	break;
+			       favor_diagonal = 1;
+			       break;
 			case 'p':
-			       	prob_align_null = atof(optarg);
-			       	break;
+			       prob_align_null = atof(optarg);
+			       break;
 			case 'T':
-			       	diagonal_tension = atof(optarg);
-			       	break;
+			       diagonal_tension = atof(optarg);
+			       break;
 			case 'o':
-			       	optimize_tension = 1;
-			       	break;
+			       optimize_tension = 1;
+			       break;
 			case 'v':
-			       	variational_bayes = 1;
-			       	break;
+			       variational_bayes = 1;
+			       break;
 			case 'a':
-			       	alpha = atof(optarg);
-			       	break;
+			       alpha = atof(optarg);
+			       break;
 			case 'N':
-			       	no_null_word = 1;
-			       	break;
+			       no_null_word = 1;
+			       break;
 			case 'c':
-			       	conditional_probability_filename = optarg;
-			       	break;
+			       conditional_probability_filename = optarg;
+			       break;
+			case 'l':
+			      	train_line = atoi(optarg); 
+			       break;
 			default:
-			       	return false;
+			       return false;
 		}
-	}
-	if (input.size() == 0){
-		return false;
 	}
 	return true;
 }
@@ -188,63 +225,85 @@ int main(int argc, char** argv) {
 	double prob_align_not_null = 1.0 - prob_align_null;
 	const unsigned kNULL = d.Convert("<eps>");
 	TTable t2s;
-	unordered_map<pair<short, short>, unsigned, PairHash> size_counts;
 	double tot_len_ratio = 0;
 	double mean_srclen_multiplier = 0;
 	vector<double> probs;
+	FILE *tof = stderr;
+	FILE *taof = stdout;	
 	for (int iter = 0; iter < ITERATIONS; ++iter) {
 		const bool final_iteration = (iter == (ITERATIONS - 1));
-		cerr << "ITERATION " << (iter + 1) << (final_iteration ? " (FINAL)" : "") << endl;
-		ifstream in(input.c_str());
-		if (!in) {
-			cerr << "Can't read " << input << endl;
-			return 1;
-		}
-		ReadFile rf,ff,ef;
-		istream* in;
-		istream  *fin,*ein;
+		ifstream in,fin,ein;
 		if(ONE_INPUT_FILE){
-			//rf.Init
+			in.open(fname.c_str(), ifstream::in);
+			if (!in) {
+				cerr << "Can't read " << fname << endl;
+				return 1;
+			}
 		}
 		else{
-		
+			fin.open(ffname.c_str(), ifstream::in);
+			ein.open(efname.c_str(), ifstream::in);
+			if(!fin){
+				cerr << "Can't read " << ffname << endl;
+				return 1;
+			}
+			if(!ein){
+				cerr << "Can't read " << efname << endl;
+				return 1;
+			}
 		}
-		double likelihood = 0;
-		double denom = 0.0;
-		int lc = 0;
-		bool flag = false;
+		cerr << "ITERATION " << (iter + 1) << (final_iteration ? " (FINAL)" : "") << endl;
+		likelihood = 0;
+		denom = 0.0;
+		lc = 0;
+		flag = false;
 		string line,fline,eline;
 		string ssrc, strg;
 		vector<unsigned> src, trg;
-		double c0 = 0;
-		double emp_feat = 0;
-		double toks = 0;
+		c0 = 0;
+		emp_feat = 0;
+		toks = 0;
 		while(true) {
-			getline(in, line);
-			if (!in) break;
+			if(/*train_line != -1 &&*/ lc >= train_line){
+				break;
+			}
+			if(ONE_INPUT_FILE){
+				getline(in,line);	
+			}
+			else{
+				getline(fin,fline);
+				getline(ein,eline);
+			}
+			if (ONE_INPUT_FILE && !in){
+				break;
+			}
+			else if(!ONE_INPUT_FILE && (!fin || !ein)){
+				break;
+			}
 			++lc;
 			if (lc % 1000 == 0) { 
-				cerr << '.';
-			       	flag = true;
-		       	}
+				fprintf(tof,".");
+				fprintf(stderr,".");
+				flag = true;
+			}
 			if (lc %50000 == 0) { 
-				cerr << " [" << lc << "]\n" << flush;
-			       	flag = false;
-		       	}
+				fprintf(tof," [%d]\n",lc);
+				fprintf(stderr," [%d]\n",lc);
+				flag = false;
+			}
 			src.clear();
-		       	trg.clear();
+			trg.clear();
 			if(ONE_INPUT_FILE){
 				ParseLine(line, &src, &trg);
 			}
 			else{
 				ParseLineFromSeparateFiles(fline,eline,&src,&trg);
-				//this function is still unimplemented
 			}
 			if (is_reverse){
 				swap(src, trg);
 			}
 			if (src.size() == 0 || trg.size() == 0) {
-				cerr << "Error in line " << lc << "\n" << line << endl;
+				fprintf(stderr,"Error: %d\n%s\n",lc,line.c_str());
 				return 1;
 			}
 			if (iter == 0){
@@ -320,7 +379,9 @@ int main(int argc, char** argv) {
 					for (unsigned i = 1; i <= trg.size(); ++i) {
 						const double p = probs[i] / sum;
 						if(smooth == KN){ 
-							t2s.lm.addNgram(reverse(TTable::makeWordVector(trg,i-1,HISTORY,kNULL)),f_j,p);
+							WordVector vec = TTable::makeWordVector(trg,i-1,HISTORY,kNULL);
+							reverse(vec.begin(),vec.end());
+							t2s.lm.addNgram(vec,f_j,p);
 						}
 						else{
 							t2s.Increment(TTable::makeWordVector(trg, i-1, HISTORY, kNULL), f_j, p);
@@ -334,24 +395,20 @@ int main(int argc, char** argv) {
 		}
 
 		// log(e) = 1.0
-		double base2_likelihood = likelihood / log(2);
+		base2_likelihood = likelihood / log(2);
 
 		if (flag) { 
 			cerr << endl;
-	       	}
+		}
 		if (iter == 0) {
 			mean_srclen_multiplier = tot_len_ratio / lc;
 			cerr << "expected target length = source length * " << mean_srclen_multiplier << endl;
 		}
 		emp_feat /= toks;
-		cerr << "  log_e likelihood: " << likelihood << endl;
-		cerr << "  log_2 likelihood: " << base2_likelihood << endl;
-		cerr << "     cross entropy: " << (-base2_likelihood / denom) << endl;
-		cerr << "        perplexity: " << pow(2.0, -base2_likelihood / denom) << endl;
-		cerr << "      posterior p0: " << c0 / toks << endl;
-		cerr << " posterior al-feat: " << emp_feat << endl;
-		//cerr << "     model tension: " << mod_feat / toks << endl;
-		cerr << "       size counts: " << size_counts.size() << endl;
+		if(tof!=stderr){
+			printProcess(tof);
+		}
+		printProcess(stderr);
 		if (!final_iteration) {
 			if (favor_diagonal && optimize_tension && iter > 0) {
 				for (int ii = 0; ii < 8; ++ii) {
@@ -363,12 +420,16 @@ int main(int argc, char** argv) {
 							mod_feat += it->second * DiagonalAlignment::ComputeDLogZ(j, p.first, p.second, diagonal_tension);
 					}
 					mod_feat /= toks;
-					cerr << "  " << ii + 1 << "  model al-feat: " << mod_feat << " (tension=" << diagonal_tension << ")\n";
+					fprintf(tof,"  %d model al-feat: %lf (tension=%lf)\n",ii+1,mod_feat,diagonal_tension);
 					diagonal_tension += (emp_feat - mod_feat) * 20.0;
-					if (diagonal_tension <= 0.1) diagonal_tension = 0.1;
-					if (diagonal_tension > 14) diagonal_tension = 14;
+					if (diagonal_tension <= 0.1){
+						diagonal_tension = 0.1;
+					}
+					if (diagonal_tension > 14){
+						diagonal_tension = 14;
+					}
 				}
-				cerr << "     final tension: " << diagonal_tension << endl;
+				fprintf(tof,"     final tension: %lf\n",diagonal_tension);
 			}
 			switch(smooth){
 				case VB:
@@ -376,7 +437,7 @@ int main(int argc, char** argv) {
 					break;
 				case KN:
 					t2s.knEstimate();
-				case Normal:
+				case NO:
 				default:
 					t2s.Normalize();
 					break;
@@ -385,11 +446,18 @@ int main(int argc, char** argv) {
 			//prob_align_null += (c0 / toks) * 0.2;
 			prob_align_not_null = 1.0 - prob_align_null;
 		}
+		if(ONE_INPUT_FILE){
+			in.close();	
+		}
+		else{
+			fin.close();
+			ein.close();	
+		}
 	}
-	if (!conditional_probability_filename.empty()) {
+	/*if (!conditional_probability_filename.empty()) {
 		cerr << "conditional probabilities: " << conditional_probability_filename << endl;
 		t2s.ExportToFile(conditional_probability_filename.c_str(), d);
-	}
+	}*/
 
 	if(tof!=stderr){
 		fclose(tof);
@@ -401,47 +469,52 @@ int main(int argc, char** argv) {
 		double tlp = 0;
 		int lc = 0;
 		string line,fline,eline;
-		ReadFile rf,ftf,etf;
-		istream *in = NULL;
-		istream	*fin = NULL,*ein = NULL;
-		tof = stderr;
-		taof  = stdout;
-		if(ONE_TEST_FILE){
-			rf.Init(testset);
-			in = rf.stream();
+		ifstream in,fin,ein;
+		if(ONE_INPUT_FILE){
+			in.open(fname.c_str(), ifstream::in);
+			if (!in) {
+				cerr << "Can't read " << fname << endl;
+				return 1;
+			}
 		}
 		else{
-			ftf.Init(ftestset);
-			etf.Init(etestset);
-			fin = ftf.stream();
-			ein = etf.stream();
+			fin.open(ffname.c_str(), ifstream::in);
+			ein.open(efname.c_str(), ifstream::in);
+			if(!fin){
+				cerr << "Can't read " << ffname << endl;
+				return 1;
+			}
+			if(!ein){
+				cerr << "Can't read " << efname << endl;
+				return 1;
+			}
 		}
 		while (true) {
 			++lc;
 			vector<WordID> src, trg;
 			if(ONE_TEST_FILE){
-				getline(*in,line);
+				getline(in,line);
 			}
 			else{
-				getline(*fin,fline);
-				getline(*ein,eline);
+				getline(fin,fline);
+				getline(ein,eline);
 			}
-			if (ONE_TEST_FILE && !*in){
+			if (ONE_TEST_FILE && !in){
 				break;
 			}
-			else if(!ONE_TEST_FILE && (!*fin || !*ein)){
+			else if(!ONE_TEST_FILE && (!fin || !ein)){
 				break;
 			}
 
 			if(ONE_TEST_FILE){
-				CorpusTools::ReadLine(line, &src, &trg);
+				ParseLine(line, &src, &trg);
 			}
 			else{
-				CorpusTools::ReadLineFromSeparateFiles(fline,eline,&src,&trg);
+				ParseLineFromSeparateFiles(fline,eline,&src,&trg);
 			}
 
 			//cerr << TD::GetString(src) << " ||| " << TD::GetString(trg) << " |||";
-			if (reverse){
+			if (is_reverse){
 				swap(src, trg);
 			}
 			bool first_al = true;  // used for write_alignments
@@ -487,7 +560,7 @@ int main(int argc, char** argv) {
 						else{
 							fprintf(taof," ");
 						}
-						if (reverse){
+						if (is_reverse){
 							fprintf(taof,"%d-%d",j , a_j - 1);
 						}
 						else{
@@ -499,15 +572,16 @@ int main(int argc, char** argv) {
 			tlp += log_prob;
 			fprintf(taof,"\n");
 			//fprintf(taof," ||| %lf\n",log_prob);
-		} // loop over test set sentences
-		fprintf(tof,"TOTAL LOG PROB %lf\n",tlp);
-		if(tof!=stderr){
-			fclose(tof);
+			} // loop over test set sentences
+			fprintf(tof,"TOTAL LOG PROB %lf\n",tlp);
+			if(tof!=stderr){
+				fclose(tof);
+			}
+			if(taof!=stdout){
+				fclose(taof);
+			}
 		}
-		if(taof!=stdout){
-			fclose(taof);
-		}
+
+		return 0;
 	}
 
-	return 0;
-}

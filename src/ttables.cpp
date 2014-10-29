@@ -23,7 +23,7 @@ double TTable::prob(const WordVector& e, const WordID& f) const {
 	}
 }
 
-double TTable::backoffProb(const WordVector& e, const WordID& f){
+double TTable::backoffProb(const WordVector& e, const WordID& f) const{
 	for(int i = n;i>=0;--i){
 		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin(),e.begin()+i));
 		if(it!=ttables[i].end()){// if target i-gram exists
@@ -122,29 +122,29 @@ TTable& TTable::operator+=(const TTable& rhs) {
 	return *this;
 }
 
-void TTable::ShowCounts(int index) {
-	_ShowCounts(index);
+void TTable::ShowCounts(int index,Dict& d) {
+	_ShowCounts(index,d);
 }
 
-void TTable::ShowCounts() {
-	_ShowCounts(n);
+void TTable::ShowCounts(Dict& d) {
+	_ShowCounts(n,d);
 }
 
-void TTable::ShowTTable(int index) {
-	_ShowTTable(index);
+void TTable::ShowTTable(int index, Dict& d) {
+	_ShowTTable(index,d);
 }
 
-void TTable::ShowTTable(){
-	_ShowTTable(n);
+void TTable::ShowTTable(Dict& d){
+	_ShowTTable(n,d);
 }
 
 WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID kNULL){//index start from 0
 	int trglen = trg.size();
 	if(history<0){
-		throw std::invalid_argument("history must be non-negative integer.");
+		throw invalid_argument("history must be non-negative integer.");
 	}	
 	if( index < 0 || index >= trglen ){
-		throw std::invalid_argument("index is out of range in makeWordVector.");	
+		throw invalid_argument("index is out of range in makeWordVector.");	
 	}
 	if( index - history < 0 ){
 		WordVector wv;
@@ -158,59 +158,57 @@ WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID k
 }	
 
 enum Smoothing TTable::getSmoothMethod(string str){
-	switch (str2int(str)){
-		case str2int("normal"):
-			return Normal;
-			break;
+	switch (str2int(str.c_str())){
 		case str2int("vb"):
 			return VB;
 			break;
 		case str2int("kn"):
 			return KN;
 			break;
+		case str2int("normal"):
 		default:
-			return Normal;
+			return NO;
 			break;
 	}
-	return Normal;
+	return NO;
 }
 
 
-void TTable::_ShowCounts(int index) {
+void TTable::_ShowCounts(int index, Dict& d) {
 	for (WordVector2Word2Double::const_iterator it = counts[index-1].begin(); it != counts[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (auto& p : cpd) {
-			std::cerr << "c(" << TD::Convert(p.first) << '|' << TD::Convert(it->first) << ") = " << p.second << std::endl;
+			cerr << "c(" << d.Convert(p.first) << '|' << d.Convert(it->first) << ") = " << p.second << endl;
 		}
 	}
 }
 
-void TTable::_ShowTTable(int index){
-	std::fprintf(stderr,"showing %d-gram prob table\n",index);
-	std::fprintf(stderr,"size: %u\n",ttables[index-1].size());
-	std::fprintf(stderr,"skipping cell with zero prob\n");
+void TTable::_ShowTTable(int index, Dict& d){
+	fprintf(stderr,"showing %d-gram prob table\n",index);
+	fprintf(stderr,"size: %u\n",ttables[index-1].size());
+	fprintf(stderr,"skipping cell with zero prob\n");
 	for (WordVector2Word2Double::const_iterator it = ttables[index-1].begin(); it != ttables[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (auto& p : cpd) {
 			if(p.second==0) continue;//do not print prob with 0
-			std::fprintf(stderr,"Pr(%s|%s) = %lf\n", TD::Convert(p.first).c_str(), TD::Convert(it->first).c_str(),p.second);
+			fprintf(stderr,"Pr(%s|%s) = %lf\n", d.Convert(p.first).c_str(), d.Convert(it->first).c_str(),p.second);
 		}
 	}
 
 }
 
-void TTable::ExportToFile(const char* filename, Dict& d) {
-	std::ofstream file(filename);
-	for (unsigned i = 0; i < ttable.size(); ++i) {
-		const std::string& a = d.Convert(i);
-		Word2Double& cpd = ttable[i];
+/*void TTable::ExportToFile(const char* filename, Dict& d) {
+	ofstream file(filename);
+	for (unsigned i = 0; i < ttables[n].size(); ++i) {
+		const string& a = d.Convert(i);
+		Word2Double& cpd = ttables[i];
 		for (Word2Double::iterator it = cpd.begin(); it != cpd.end(); ++it) {
-			const std::string& b = d.Convert(it->first);
+			const string& b = d.Convert(it->first);
 			double c = log(it->second);
-			file << a << '\t' << b << '\t' << c << std::endl;
+			file << a << '\t' << b << '\t' << c << endl;
 		}
 	}
 	file.close();
-}
+}*/
 
 

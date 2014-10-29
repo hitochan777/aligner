@@ -1,5 +1,6 @@
 #ifndef VOCAB_H
 #define VOCAB_H
+#include "common.h"
 #include <string>
 #include <vector>
 #include "ZMap.h"
@@ -14,9 +15,9 @@ public:
 	int add(const string& wrd);
 	string int2str(int ind){if(ind<0||ind>=(int)_int2str.size())return "";else return _int2str[ind];}
 	int lookup(const string& wrd, bool forced);
-	int lookup(string* pWrd, vector<int>& context, int clen, bool forced);
-	void reverse(vector<int>& context);
-	void reverse(int* context, int len);
+	int lookup(string* pWrd, WordVector& context, int clen, bool forced);
+	void reverse(WordVector& context);
+	void reverse(WordID* context, int len);
 	void clear(){_dic.clear();_int2str.clear();}
 	size_t size(){return _dic.size();}
 	void remove(int id);
