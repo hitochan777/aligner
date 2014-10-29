@@ -17,36 +17,22 @@ struct PairHash {
 		return (unsigned short)x.first << 16 | (unsigned)x.second;
 	}
 };
-
+/**************declaration of global variable**************************
+ * defined here so that printProcess() can use these.
+ * 
+*/
 Dict d;// this variable is going to be used throughout this program
-
-string conditional_probability_filename = "";
-int is_reverse = 0;
-int ITERATIONS = 5;
-int favor_diagonal = 0;
-double prob_align_null = 0.08;
-double diagonal_tension = 4.0;
-int optimize_tension = 0;
-int variational_bayes = 0;
-double alpha = 0.01;
-int no_null_word = 0;
-int train_line = -1;
-bool DO_TEST;
-bool ONE_TEST_FILE;
-bool ONE_INPUT_FILE;
-int HISTORY = 0;
-string testset,ftestset,etestset;
-string fname,ffname,efname;
 double likelihood = 0;
+double base2_likelihood = 0;
 double denom = 0.0;
 int lc = 0;
 bool flag = false;
 double c0 = 0;
 double emp_feat = 0;
-double toks = 0;
-double base2_likelihood;
-enum Smoothing smooth = NO;
-unordered_map<pair<short, short>, unsigned, PairHash> size_counts;
+int toks = 0;
+unordered_map<pair<short, short>, unsigned,PairHash > size_counts;
+
+/***********************************************************************/
 
 void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 	static const unsigned kDIV = d.Convert("|||");
@@ -91,7 +77,7 @@ void printProcess(FILE* fp){
 	fprintf(fp,"      posterior p0: %lf\n",c0 / toks);
 	fprintf(fp," posterior al-feat: %lf\n",emp_feat);
 	//cerr << "     model tension: " << mod_feat / toks << endl;
-	fprintf(fp,"       size counts: %d\n",size_counts.size());
+	fprintf(fp,"       size counts: %lu\n",size_counts.size());
 	return ;
 }
 
@@ -163,19 +149,60 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	bool use_null = !no_null_word;
-	if (variational_bayes && alpha <= 0.0) {
+	string testset, ftestset, etestset;
+
+	if (conf.count("testset")){
+		testset = conf["testset"].as<string>();
+	}
+	//actually this logic expression does not need two term. Only one is enough because verifyConf has verified both files are present in advance.
+	else if(conf.count("ftestset") || conf.count("etestset")){	
+		ftestset = conf["ftestset"].as<string>();
+		etestset = conf["etestset"].as<string>();
+	}
+
+	const string fname = (conf.count("input")>0)?conf["input"].as<string>():"";
+	const string ffname = (conf.count("finput")>0)?conf["finput"].as<string>():"";
+	const string efname = (conf.count("einput")>0)?conf["einput"].as<string>():"";
+	const bool is_reverse = conf.count("reverse") > 0;
+	const int ITERATIONS = (conf.count("force_align")) ? 0 : conf["iterations"].as<unsigned>();
+	//const double BEAM_THRESHOLD = pow(10.0, conf["beam_threshold"].as<double>());
+	const bool use_null = (conf.count("no_null_word") == 0);
+	const WordID kNULL = d.Convert("<eps>");
+	const bool add_viterbi = (conf.count("no_add_viterbi") == 0);
+	//const bool output_parameters = (conf.count("force_align")) ? false : conf.count("output_parameters");
+	double diagonal_tension = conf["diagonal_tension"].as<double>();
+	bool optimize_tension = conf.count("optimize_tension");
+	bool hide_training_alignments = (conf.count("hide_training_alignments") > 0);
+	const bool write_alignments = (conf.count("force_align")) ? true : !hide_training_alignments;
+	const int HISTORY = conf["history"].as<int>();
+	const bool ONE_INPUT_FILE = ffname.empty(); 
+	const bool ONE_TEST_FILE = ftestset.empty();
+	const bool DO_TEST = !testset.empty() || !ftestset.empty();
+	const Smoothing smooth = TTable::getSmoothMethod(conf["smoothing"].as<string>());
+	const int train_line = conf["train_line"].as<int>();
+	if (conf.count("force_align")){
+		testset = fname;
+	}
+
+	double prob_align_null = conf["prob_align_null"].as<double>();
+	double prob_align_not_null = 1.0 - prob_align_null;
+	const double alpha = conf["alpha"].as<double>();
+	const bool favor_diagonal = conf.count("favor_diagonal");
+
+	if (smooth == VB && alpha <= 0.0) {
 		cerr << "--alpha must be > 0\n";
 		return 1;
 	}
-	double prob_align_not_null = 1.0 - prob_align_null;
-	const unsigned kNULL = d.Convert("<eps>");
-	TTable t2s(HISTORY + 1);
+
+	TTable t2s(HISTORY+1);
+	Word2Word2Double t2s_viterbi;
 	double tot_len_ratio = 0;
 	double mean_srclen_multiplier = 0;
 	vector<double> probs;
-	FILE *tof = stderr;
-	FILE *taof = stdout;	
+
+	FILE *tof= (conf.count("train_process_output_file")>0)?fopen(conf["train_process_output_file"].as<string>().c_str(),"w"):stderr;
+	FILE *taof  = (conf.count("train_align_output_file")>0)?fopen(conf["train_align_output_file"].as<string>().c_str(),"w"):stdout;
+
 	for (int iter = 0; iter < ITERATIONS; ++iter) {
 		const bool final_iteration = (iter == (ITERATIONS - 1));
 		ifstream in,fin,ein;
@@ -198,7 +225,10 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 		}
-		cerr << "ITERATION " << (iter + 1) << (final_iteration ? " (FINAL)" : "") << endl;
+		if(tof!=stderr){
+			fprintf(tof,"ITERATION %d%s\n",iter + 1,(final_iteration ? " (FINAL)" : ""));
+		}
+		fprintf(stderr,"ITERATION %d%s\n",iter + 1,(final_iteration ? " (FINAL)" : ""));
 		likelihood = 0;
 		denom = 0.0;
 		lc = 0;
@@ -287,31 +317,42 @@ int main(int argc, char** argv) {
 					sum += probs[i];
 				}
 				if (final_iteration) {
-					double max_p = -1;
-					int max_index = -1;
-					if (use_null) {
-						max_index = 0;
-						max_p = probs[0];
-					}
-					for (unsigned i = 1; i <= trg.size(); ++i) {
-						if (probs[i] > max_p) {
-							max_index = i;
-							max_p = probs[i];
+					if (add_viterbi || write_alignments) {
+						WordID max_i = 0;
+						double max_p = -1;
+						int max_index = -1;
+						if (use_null) {
+							max_i = kNULL;
+							max_index = 0;
+							max_p = probs[0];
 						}
-					}
-					if (max_index > 0) {
-						if (first_al){
-							first_al = false;
+						for (unsigned i = 1; i <= trg.size(); ++i) {
+							if (probs[i] > max_p) {
+								max_index = i;
+								max_p = probs[i];
+								max_i = trg[i-1];
+							}
 						}
-						else{
-							cout << ' ';
+						if (!hide_training_alignments && write_alignments) {
+							if (max_index > 0) {
+								if (first_al){
+									first_al = false;
+								} 
+								else{
+									fprintf(taof," ");
+								}
+								if (is_reverse){
+									fprintf(taof,"%d-%d",j, max_index - 1);
+								}
+								else{
+									fprintf(taof,"%d-%d",max_index - 1, j);
+								}
+							}
 						}
-						if (is_reverse){
-							cout << j << '-' << (max_index - 1);
+						if (t2s_viterbi.size() <= static_cast<unsigned>(max_i)){
+							t2s_viterbi.resize(max_i + 1);
 						}
-						else{
-							cout << (max_index - 1) << '-' << j;
-						}
+						t2s_viterbi[max_i][f_j] = 1.0;
 					}
 				} 
 				else{

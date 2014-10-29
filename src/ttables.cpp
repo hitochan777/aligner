@@ -185,7 +185,7 @@ void TTable::_ShowCounts(int index, Dict& d) {
 
 void TTable::_ShowTTable(int index, Dict& d){
 	fprintf(stderr,"showing %d-gram prob table\n",index);
-	fprintf(stderr,"size: %u\n",ttables[index-1].size());
+	fprintf(stderr,"size: %lu\n",ttables[index-1].size());
 	fprintf(stderr,"skipping cell with zero prob\n");
 	for (WordVector2Word2Double::const_iterator it = ttables[index-1].begin(); it != ttables[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
