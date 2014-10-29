@@ -13,7 +13,8 @@ struct PairHash {
 	}
 };
 
-Dict d; // integerization map
+Dict d;// this variable is going to be used throughout this program
+
 string conditional_probability_filename = "";
 int is_reverse = 0;
 int ITERATIONS = 5;
