@@ -16,4 +16,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -rf *.o $(EXECUTABLE)
+	rm -rf $(SRCDIR)/*.o $(EXECUTABLE)
