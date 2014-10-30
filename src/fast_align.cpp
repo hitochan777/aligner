@@ -120,6 +120,7 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("force_align,f",po::value<string>(), "Load previously written parameters to 'force align' input. Set --diagonal_tension and --mean_srclen_multiplier as estimated during training.")
 		("mean_srclen_multiplier,m",po::value<double>()->default_value(1), "When --force_align, use this source length multiplier")
 		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.");
+		("smoothing,S",po::value<Smoothing>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
 	po::options_description clo("Command line options");
 	clo.add_options()
 		("config", po::value<string>(), "Configuration file")
@@ -178,7 +179,7 @@ int main(int argc, char** argv) {
 	const bool ONE_INPUT_FILE = ffname.empty(); 
 	const bool ONE_TEST_FILE = ftestset.empty();
 	const bool DO_TEST = !testset.empty() || !ftestset.empty();
-	const Smoothing smooth = TTable::getSmoothMethod(conf["smoothing"].as<string>());
+	const Smoothing smooth = conf["smoothing"].as<string>();
 	const int train_line = conf["train_line"].as<int>();
 	if (conf.count("force_align")){
 		testset = fname;
@@ -205,6 +206,7 @@ int main(int argc, char** argv) {
 
 	for (int iter = 0; iter < ITERATIONS; ++iter) {
 		const bool final_iteration = (iter == (ITERATIONS - 1));
+		const bool semi_final_iteration = (iter == (ITERATIONS - 2));
 		ifstream in,fin,ein;
 		if(ONE_INPUT_FILE){
 			in.open(fname.c_str(), ifstream::in);
@@ -240,7 +242,7 @@ int main(int argc, char** argv) {
 		emp_feat = 0;
 		toks = 0;
 		while(true) {
-			if(/*train_line != -1 &&*/ lc >= train_line){
+			if(train_line != -1 && lc >= train_line){
 				break;
 			}
 			if(ONE_INPUT_FILE){
@@ -378,15 +380,19 @@ int main(int argc, char** argv) {
 				}
 				likelihood += log(sum);
 			}
-			if (final_iteration) cout << endl;
+			if (write_alignments && final_iteration && !hide_training_alignments){
+				fprintf(taof,"\n");
+			}
 		}
 
 		// log(e) = 1.0
 		base2_likelihood = likelihood / log(2);
 
 		if (flag) { 
-			cerr << endl;
+			fprintf(tof,"\n");
+			fprintf(stderr,"\n");
 		}
+
 		if (iter == 0) {
 			mean_srclen_multiplier = tot_len_ratio / lc;
 			cerr << "expected target length = source length * " << mean_srclen_multiplier << endl;
@@ -423,7 +429,12 @@ int main(int argc, char** argv) {
 					t2s.NormalizeVB(alpha);
 					break;
 				case KN:
-					t2s.knEstimate();
+					if(semi_final_iteration){
+						t2s.copyFromKneserNeyLM(true);
+					}
+					else{
+						t2s.copyFromKneserNeyLM(false);
+					}
 				case NO:
 				default:
 					t2s.Normalize();
@@ -457,6 +468,8 @@ int main(int argc, char** argv) {
 		int lc = 0;
 		string line,fline,eline;
 		ifstream in,fin,ein;
+		tof= (conf.count("test_output_file")>0)?fopen(conf["test_output_file"].as<string>().c_str(),"w"):stderr;
+		taof  = (conf.count("test_align_output_file")>0)?fopen(conf["test_align_output_file"].as<string>().c_str(),"w"):stdout;
 		if(ONE_INPUT_FILE){
 			in.open(fname.c_str(), ifstream::in);
 			if (!in) {

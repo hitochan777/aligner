@@ -141,6 +141,11 @@ class LM{
 		double bigramProb(WordID wrd, WordID context){
 			return exp10(probBO(wrd,&context,1));
 		}
+
+		double ngramProb(WordID wrd, WordVector context){
+			return exp10(probBO(wrd,&context[0],(int)context.size()));	
+		}
+
 		void resetVocab();
 
 	private:

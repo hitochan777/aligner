@@ -41,8 +41,8 @@ class TTable {
 		void ShowCounts(Dict& d);
 		void ShowTTable(int index, Dict& d);
 		void ShowTTable(Dict& d);
+		void copyFromKneserNeyLM(bool copyAll = false);
 		static WordVector makeWordVector(WordVector& trg,int index,int history, WordID kNULL);
-		static enum Smoothing getSmoothMethod(string str);
 		//void ExportToFile(const char* filename, Dict& d);
 
 	private:
@@ -53,6 +53,7 @@ class TTable {
 		VWV2WD counts;
 		LM lm;
 		int n;//how many target words to consider in P(f|e_{i},e_{i+1},e_{i+n})
+		WordVector2Double> beta;//backoff weight \beta(e_{i},e_{i+1},...,e_{n+i-1})
 };
 
 #endif

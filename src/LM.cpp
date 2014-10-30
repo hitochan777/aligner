@@ -296,7 +296,7 @@ void LM::setKNcountsByLayer(Node& node, WordVector& context, int order){
 	}
 	else{
 		int clen = (int)context.size() - 1;
-		if( clen < 0 ){
+		if(clen < 0){
 			return;
 		}
 		//cerr<<"lostType size:"<<node.types.size()<<endl;

@@ -101,9 +101,28 @@ void TTable::Normalize() {
 	counts.clear();
 	counts.resize(n+1);
 }
-void TTable::knEstimate(){
 
+void copyFromKneserNeyLM(bool copyAll = false){
+	lm.knEstimate();	
+	if(copyAll){
+		for(int i = 0; i <= n ;++i){
+			for(WordVector2Word2Double::iterator it = ttables[n];it!=ttables[n].end();++it){
+				it->second->second = lm.ngramProb(it->first,it->second->first);
+				//beta[it->first] = lm.calculateBOW(it->first);
+			}
+		}
+	} 
+	else{
+		for(WordVector2Word2Double::iterator it = ttables[n];it!=ttables[n].end();++it){
+			it->second->second = lm.ngramProb(it->first,it->second->first);
+		}
+	}
+	cerr<<"copy done"<<endl;
+	lm.clear();
+	cerr<<"clear done"<<endl;	
+	return ;
 }
+
 
 // adds counts from another TTable - probabilities remain unchanged
 TTable& TTable::operator+=(const TTable& rhs) {
@@ -157,23 +176,6 @@ WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID k
 	return WordVector(&trg[index]-history,&trg[index]+1);
 }	
 
-enum Smoothing TTable::getSmoothMethod(string str){
-	switch (str2int(str.c_str())){
-		case str2int("vb"):
-			return VB;
-			break;
-		case str2int("kn"):
-			return KN;
-			break;
-		case str2int("normal"):
-		default:
-			return NO;
-			break;
-	}
-	return NO;
-}
-
-
 void TTable::_ShowCounts(int index, Dict& d) {
 	for (WordVector2Word2Double::const_iterator it = counts[index-1].begin(); it != counts[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
@@ -198,17 +200,17 @@ void TTable::_ShowTTable(int index, Dict& d){
 }
 
 /*void TTable::ExportToFile(const char* filename, Dict& d) {
-	ofstream file(filename);
-	for (unsigned i = 0; i < ttables[n].size(); ++i) {
-		const string& a = d.Convert(i);
-		Word2Double& cpd = ttables[i];
-		for (Word2Double::iterator it = cpd.begin(); it != cpd.end(); ++it) {
-			const string& b = d.Convert(it->first);
-			double c = log(it->second);
-			file << a << '\t' << b << '\t' << c << endl;
-		}
-	}
-	file.close();
-}*/
+  ofstream file(filename);
+  for (unsigned i = 0; i < ttables[n].size(); ++i) {
+  const string& a = d.Convert(i);
+  Word2Double& cpd = ttables[i];
+  for (Word2Double::iterator it = cpd.begin(); it != cpd.end(); ++it) {
+  const string& b = d.Convert(it->first);
+  double c = log(it->second);
+  file << a << '\t' << b << '\t' << c << endl;
+  }
+  }
+  file.close();
+  }*/
 
 
