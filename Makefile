@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall -std=gnu++11
+CFLAGS=-c -Wall -std=c++0x
 LDFLAGS=
 LIBRARY=-lboost_program_options
 SRCDIR=src
