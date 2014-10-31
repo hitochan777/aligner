@@ -479,21 +479,21 @@ int main(int argc, char** argv) {
 		tof= (conf.count("test_output_file")>0)?fopen(conf["test_output_file"].as<string>().c_str(),"w"):stderr;
 		taof  = (conf.count("test_align_output_file")>0)?fopen(conf["test_align_output_file"].as<string>().c_str(),"w"):stdout;
 		if(ONE_INPUT_FILE){
-			in.open(fname.c_str(), ifstream::in);
+			in.open(testset.c_str(), ifstream::in);
 			if (!in) {
-				cerr << "Can't read " << fname << endl;
+				cerr << "Can't read " << testset << endl;
 				return 1;
 			}
 		}
 		else{
-			fin.open(ffname.c_str(), ifstream::in);
-			ein.open(efname.c_str(), ifstream::in);
+			fin.open(ftestset.c_str(), ifstream::in);
+			ein.open(etestset.c_str(), ifstream::in);
 			if(!fin){
-				cerr << "Can't read " << ffname << endl;
+				cerr << "Can't read " << ftestset << endl;
 				return 1;
 			}
 			if(!ein){
-				cerr << "Can't read " << efname << endl;
+				cerr << "Can't read " << etestset << endl;
 				return 1;
 			}
 		}
