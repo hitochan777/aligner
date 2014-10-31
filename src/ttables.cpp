@@ -153,8 +153,8 @@ TTable& TTable::operator+=(const TTable& rhs) {
 		for (WordVector2Word2Double::const_iterator it = rhs.counts[i].begin(); it != rhs.counts[i].end(); ++it) {
 			const Word2Double& cpd = it->second;
 			Word2Double& tgt = counts[i][it->first];
-			for (auto p : cpd){
-				tgt[p.first] += p.second;
+			for (Word2Double::iterator it =  cpd.begin();it!=cpd.end();++it){
+				tgt[p.first] += it->second;
 			}
 		}
 	}
@@ -199,8 +199,8 @@ WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID k
 void TTable::_ShowCounts(int index, Dict& d) {
 	for (WordVector2Word2Double::const_iterator it = counts[index-1].begin(); it != counts[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
-		for (auto& p : cpd) {
-			cerr << "c(" << d.Convert(p.first) << '|' << d.Convert(it->first) << ") = " << p.second << endl;
+		for (Word2Double::iterator it2 =  cpd.begin();it!=cpd.end();++it){
+			cerr << "c(" << d.Convert(it2->first) << '|' << d.Convert(it->first) << ") = " << it2->second << endl;
 		}
 	}
 }
@@ -211,9 +211,11 @@ void TTable::_ShowTTable(int index, Dict& d){
 	fprintf(stderr,"skipping cell with zero prob\n");
 	for (WordVector2Word2Double::const_iterator it = ttables[index-1].begin(); it != ttables[index-1].end(); ++it) {
 		const Word2Double& cpd = it->second;
-		for (auto& p : cpd) {
-			if(p.second==0) continue;//do not print prob with 0
-			fprintf(stderr,"Pr(%s|%s) = %lf\n", d.Convert(p.first).c_str(), d.Convert(it->first).c_str(),p.second);
+		for (Word2Double::iterator it2 =  cpd.begin();it!=cpd.end();++it){
+			if(it2->second==0){
+			       	continue;//do not print prob with 0
+			}
+			fprintf(stderr,"Pr(%s|%s) = %lf\n", d.Convert(it2->first).c_str(), d.Convert(it->first).c_str(),it2->second);
 		}
 	}
 

@@ -118,15 +118,15 @@ void LM::mlEstimate(Node& node){
 	node.bow=-99;
 
 	iter=node.probs.begin();
-	for(;iter!=node.probs.end();iter++)
-	{
+	for(;iter!=node.probs.end();iter++){
 		if(iter->second==0){cerr<<"error, nfrac is 0"; exit(1);}
 		iter->second=log10(iter->second)-log10(ntoken);
 	}
 	node.types.clear();
 
-	for(auto& child : node.childs)
-		mlEstimate(child.second);
+	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
+		mlEstimate(iter->second);
+	}
 }
 
 void LM::computeBOW(bool interpolate){
@@ -990,8 +990,8 @@ void readPlainFile(string filename, int order, double*& p_weight, int nSentence,
 		}
 	}
 	if(_debug){
-		for(auto& item : ngrams){
-			cout<<item.first<<" ||| count:"<<item.second.second<<" type:"<<item.second.first<<endl;
+		for(unordered_map<string,pair<FracType,double>>::iterator it = ngrams.begin();it!=ngrams.end();++it){       
+			cout<<it->first<<" ||| count:"<<it->second.second<<" type:"<<it->second.first<<endl;
 		}
 	}
 }
@@ -999,9 +999,9 @@ void readPlainFile(string filename, int order, double*& p_weight, int nSentence,
 void LM::addNgrams(unordered_map<string,pair<FracType,double>>& ngrams){
 	int order=0;
 	_vocab.add(unk);
-	for(auto& item: ngrams){
+	for(unordered_map<string,pair<FracType,double>>::iterator it = ngrams.begin();it!=ngrams.end();++it){       
 		vector<string> wrds;
-		split(wrds,item.first,is_any_of(" \t"));
+		split(wrds,it->first,is_any_of(" \t"));
 		if((int)wrds.size()<2){
 			continue;
 		}
@@ -1011,9 +1011,9 @@ void LM::addNgrams(unordered_map<string,pair<FracType,double>>& ngrams){
 		}
 		_vocab.reverse(context);
 
-		addFracCount(context[0],&context[0]+1,(int)context.size()-1,item.second.second,item.second.first);
+		addFracCount(context[0],&context[0]+1,(int)context.size()-1,it->second.second,it->second.first);
 		for(int depth=0;depth<(int)context.size()-1;depth++){
-			addFracCount(context[0],&context[0]+1,depth,item.second.second,item.second.second);
+			addFracCount(context[0],&context[0]+1,depth,it->second.second,it->second.second);
 		}
 		order=max(order,(int)context.size());
 	}
