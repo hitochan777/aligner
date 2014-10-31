@@ -362,6 +362,7 @@ int main(int argc, char** argv) {
 						WordVector wv = WordVector(HISTORY+1,kNULL);
 						c0 += count;
 						if(smooth == KN){
+							//we don't need to reverse wv since wv is consisted of only kNULL's
 							t2s.lm.addNgram(wv, f_j, count);
 						}
 						else{
@@ -377,10 +378,6 @@ int main(int argc, char** argv) {
 						}
 						else{	
 							WordVector wv = TTable::makeWordVector(trg, i-1, HISTORY, kNULL);
-							if(wv.size()!=HISTORY+1){
-								cerr<<"makeWordVector generated malign vector"<<endl;
-								return 1;
-							}
 							t2s.Increment(wv, f_j, p);
 							
 						}
@@ -418,8 +415,9 @@ int main(int argc, char** argv) {
 					unordered_map<pair<short,short>,unsigned,PairHash>::iterator it = size_counts.begin();
 					for(; it != size_counts.end(); ++it) {
 						const pair<short,short>& p = it->first;
-						for (short j = 1; j <= p.first; ++j)
+						for (short j = 1; j <= p.first; ++j){
 							mod_feat += it->second * DiagonalAlignment::ComputeDLogZ(j, p.first, p.second, diagonal_tension);
+						}
 					}
 					mod_feat /= toks;
 					fprintf(tof,"  %d model al-feat: %lf (tension=%lf)\n",ii+1,mod_feat,diagonal_tension);
@@ -444,6 +442,7 @@ int main(int argc, char** argv) {
 					else{
 						t2s.copyFromKneserNeyLM(false,false);
 					}
+					break;
 				case NO:
 				default:
 					t2s.Normalize();

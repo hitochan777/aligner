@@ -69,7 +69,6 @@ Node* LM::addFracCount(WordID wrd, WordID* context, int clen, double fcount, dou
 	}
 	pNode->probs[wrd]+=fcount;
 	pNode->types[wrd].update(ftype);
-
 	return pNode;
 }
 
@@ -1044,13 +1043,14 @@ void LM::copyDiscountedProb(VWV2WD& ttables,bool copyAllProb){
 void LM::_copyDiscountedProb(Node& node,WordVector& context,VWV2WD& ttables,bool copyAllProb){
 	int len = context.size();
 	if(copyAllProb || node.childs.empty()){
-		for(ZMap<WordID,double>::iterator it = node.probs.begin();it != node.probs.begin();++it){
+		for(ZMap<WordID,double>::iterator it = node.probs.begin();it != node.probs.end();++it){
 			WordVector wv(context);
 			reverse(wv.begin(),wv.end());
-			ttables[len][wv][it->first] = it->second;
+			ttables[len][wv][it->first] = exp10(it->second);
 		}
 	}
 	if(node.childs.empty()){
+		//cerr<<"node.childs.empty()==true node.probs.size()=="<<node.probs.size()<<endl;
 		return ;
 	}
 	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
@@ -1070,7 +1070,7 @@ void LM::copyBOW(WV2D& bow){
 void LM::_copyBOW(Node& node,WordVector& context,WV2D& bow){
 	WordVector wv(context);
 	reverse(wv.begin(),wv.end());
-	bow[wv] = node.bow;
+	bow[wv] = exp10(node.bow);
 	if(node.childs.empty()){
 		return ;
 	}

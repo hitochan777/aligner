@@ -25,15 +25,19 @@ double TTable::prob(const WordVector& e, const WordID& f) const {
 }
 
 double TTable::backoffProb(const WordVector& e, const WordID& f) const{
+	double p = 1.0;
 	for(int i = 0; i<=n ;++i){
 		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin()+i,e.end()));
 		if(it!=ttables[i].end()){// if target i-gram exists
 			const Word2Double& w2d = it->second;
 			const Word2Double::const_iterator it = w2d.find(f);
 			if(it==w2d.end()){// if source word does not exist
+				if(beta.find(e)!=beta.end()){
+					p *= beta[e];
+				}
 				continue;
 			}
-			return it->second;
+			return p*it->second;
 		}
 	}
 	return 1e-9;
@@ -131,6 +135,7 @@ void TTable::copyFromKneserNeyLM(bool copyBOW, bool  copyAllProb){
 	cerr<<"kn Estimate start"<<endl;
 	lm.knEstimate(true);//interpolation is set to true.
 	cerr<<"kn Estimate end"<<endl;
+	//lm.write("/home/otsuki/Research/aligner/debug.txt");
 	ttables.clear();
 	ttables.resize(n+1);
 	if(copyBOW){
