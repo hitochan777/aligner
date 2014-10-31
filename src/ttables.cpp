@@ -27,7 +27,7 @@ double TTable::prob(const WordVector& e, const WordID& f){
 double TTable::backoffProb(const WordVector& e, const WordID& f){
 	double p = 1.0;
 	for(int i = 0; i<=n ;++i){
-		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin()+i,e.end()));
+		WordVector2Word2Double::const_iterator it = ttables[n-i].find(WordVector(e.begin()+i,e.end()));
 		if(it!=ttables[i].end()){// if target i-gram exists
 			const Word2Double& w2d = it->second;
 			const Word2Double::const_iterator it = w2d.find(f);
