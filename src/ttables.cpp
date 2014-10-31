@@ -9,7 +9,7 @@ TTable::TTable(int _n){
 	counts.resize(_n+1);
 }
 
-double TTable::prob(const WordVector& e, const WordID& f) const {
+double TTable::prob(const WordVector& e, const WordID& f){
 	WordVector2Word2Double::const_iterator it = ttables[n].find(e);
 	if(it!=ttables[n].end()){// if target n-gram exists
 		const Word2Double& w2d = it->second;
@@ -24,7 +24,7 @@ double TTable::prob(const WordVector& e, const WordID& f) const {
 	}
 }
 
-double TTable::backoffProb(const WordVector& e, const WordID& f) const{
+double TTable::backoffProb(const WordVector& e, const WordID& f){
 	double p = 1.0;
 	for(int i = 0; i<=n ;++i){
 		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin()+i,e.end()));
@@ -32,8 +32,8 @@ double TTable::backoffProb(const WordVector& e, const WordID& f) const{
 			const Word2Double& w2d = it->second;
 			const Word2Double::const_iterator it = w2d.find(f);
 			if(it==w2d.end()){// if source word does not exist
-				if(beta.find(e)!=beta.end()){
-					p *= beta[e];
+				if(bow.find(e)!=bow.end()){
+					p *= bow[e];
 				}
 				continue;
 			}
@@ -83,10 +83,6 @@ void TTable::NormalizeVB(const double alpha) {
 void TTable::Normalize() {
 	ttables.swap(counts);
 	for (WordVector2Word2Double::iterator it = ttables[n].begin(); it != ttables[n].end(); ++it) {
-		if(it->first.size()!=n){
-			cerr<<"size is NOT CORRECT"<<endl;
-			return ;	
-		}
 		double tot = 0;
 		Word2Double& cpd = it->second;
 		for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){

@@ -26,11 +26,9 @@ struct Md {
 
 class TTable {
 	public:
-		TTable() {}
-
 		TTable(int _n);
-		double prob(const WordVector& e, const WordID& f) const;
-		double backoffProb(const WordVector& e, const WordID& f) const;
+		double prob(const WordVector& e, const WordID& f);
+		double backoffProb(const WordVector& e, const WordID& f);
 		void Increment(const WordVector& e, const int& f);
 		void Increment(const WordVector& e, const int& f, double x);
 		void NormalizeVB(const double alpha);
