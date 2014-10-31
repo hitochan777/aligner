@@ -24,8 +24,8 @@ double TTable::prob(const WordVector& e, const WordID& f) const {
 }
 
 double TTable::backoffProb(const WordVector& e, const WordID& f) const{
-	for(int i = n;i>=0;--i){
-		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin(),e.begin()+i));
+	for(int i = 0; i<=n ;++i){
+		WordVector2Word2Double::const_iterator it = ttables[i].find(WordVector(e.begin()+i,e.end()));
 		if(it!=ttables[i].end()){// if target i-gram exists
 			const Word2Double& w2d = it->second;
 			const Word2Double::const_iterator it = w2d.find(f);
@@ -70,8 +70,8 @@ void TTable::Normalize() {
 		double tot = 0;
 		Word2Double& cpd = it->second;	
 		for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-			for(int i = 0;i <= n-1; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
-				ttables[i][WordVector((it->first).begin(),(it->first).begin()+i)][it2->first]
+			for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
+				ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
 					+= ttables[n][it->first][it2->first];
 			}
 			tot += it2->second;
@@ -83,7 +83,7 @@ void TTable::Normalize() {
 			it2->second /= tot;
 		}
 	}
-	for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~ (n-1) grams 
+	for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~n grams 
 		for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
 			double tot = 0;
 			Word2Double& cpd = it->second;
@@ -102,19 +102,41 @@ void TTable::Normalize() {
 	counts.resize(n+1);
 }
 
-void copyFromKneserNeyLM(bool copyAll = false){
-	lm.knEstimate();	
+void TTable::copyFromKneserNeyLM(bool copyAll){
+	lm.setOrder(n+1);
+	cerr<<"kn Estimate start"<<endl;
+	lm.knEstimate(true);//interpolation is set to true.
+	cerr<<"kn Estimate end"<<endl;
+	ttables.clear();
+	ttables.resize(n+1,0);
 	if(copyAll){
 		for(int i = 0; i <= n ;++i){
-			for(WordVector2Word2Double::iterator it = ttables[n];it!=ttables[n].end();++it){
-				it->second->second = lm.ngramProb(it->first,it->second->first);
-				//beta[it->first] = lm.calculateBOW(it->first);
+			for(WordVector2Word2Double::iterator it = ttables[n].begin();it!=ttables[n].end();++it){
+				for(Word2Double::iterator it2 = it->second.begin();it2 != it->second.end();++it2){
+					if(it->first.empty()){
+						it2->second = lm.probBO(it2->first,NULL,0);
+					}
+					else{
+						WordVector wv(it->first);
+						reverse(wv.begin(),wv.end());
+						it2->second = lm.probBO(it2->first,&wv[0],(int)(it->first.size()));
+					}
+				}
 			}
 		}
 	} 
 	else{
-		for(WordVector2Word2Double::iterator it = ttables[n];it!=ttables[n].end();++it){
-			it->second->second = lm.ngramProb(it->first,it->second->first);
+		for(WordVector2Word2Double::iterator it = ttables[n].begin();it!=ttables[n].end();++it){
+			for(Word2Double::iterator it2 = it->second.begin();it2 != it->second.end();++it2){
+				if(it->first.empty()){
+					it2->second = lm.probBO(it2->first,NULL,0);
+				}
+				else{
+					WordVector wv(it->first);
+					reverse(wv.begin(),wv.end());
+					it2->second = lm.probBO(it2->first,&wv[0],(int)(it->first.size()));
+				}
+			}
 		}
 	}
 	cerr<<"copy done"<<endl;
@@ -122,7 +144,6 @@ void copyFromKneserNeyLM(bool copyAll = false){
 	cerr<<"clear done"<<endl;	
 	return ;
 }
-
 
 // adds counts from another TTable - probabilities remain unchanged
 TTable& TTable::operator+=(const TTable& rhs) {

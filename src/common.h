@@ -34,7 +34,7 @@ typedef vector<WordID> WordVector;
 typedef unordered_map<WordID, double> Word2Double;
 typedef vector<Word2Double> Word2Word2Double;
 typedef unordered_map<WordVector,Word2Double,container_hash<WordVector> > WordVector2Word2Double;
-typedef unordered_map<WordVector,Double> WordVector2Double;
+typedef unordered_map<WordVector,double> WordVector2Double;
 typedef vector<WordVector2Word2Double> VWV2WD;
 /********************************************************************/
 

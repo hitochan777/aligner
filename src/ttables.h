@@ -53,7 +53,6 @@ class TTable {
 		VWV2WD counts;
 		LM lm;
 		int n;//how many target words to consider in P(f|e_{i},e_{i+1},e_{i+n})
-		WordVector2Double> beta;//backoff weight \beta(e_{i},e_{i+1},...,e_{n+i-1})
 };
 
 #endif

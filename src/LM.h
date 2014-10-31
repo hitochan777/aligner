@@ -99,7 +99,7 @@ class LM{
 		void write(string filename);
 		void writeCount(string filename);
 		double ppl(string filename, LMStat* pStat, string probFilename="", bool average=true);
-		void setKNcounts(bool isBackWard);
+		void setKNcounts();
 		void setKNcountsTam(double threshold);
 		void calculateDiscounts(vector<vector<double> >& discounts, bool logrized=false);
 		void adEstimate(Node& node, vector<vector<double> >& discounts, int order);

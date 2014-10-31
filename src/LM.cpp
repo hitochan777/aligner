@@ -12,20 +12,22 @@ Node* LM::setNode(WordID* context, int clen){
 
 void Node::normalize(){
 	double total=0;
-	for(ZMap<WordID, double>::iterator iter=probs.begin();iter!=probs.end();iter++)
+	for(ZMap<WordID, double>::iterator iter=probs.begin();iter!=probs.end();iter++){
 		total+=iter->second;
-	for(ZMap<WordID, double>::iterator iter=probs.begin();iter!=probs.end();iter++)
+	}
+	for(ZMap<WordID, double>::iterator iter=probs.begin();iter!=probs.end();iter++){
 		iter->second=log10(iter->second/total);
-	for(ZMap<WordID, Node>::iterator iter=childs.begin();iter!=childs.end();iter++)
+	}
+	for(ZMap<WordID, Node>::iterator iter=childs.begin();iter!=childs.end();iter++){
 		iter->second.normalize();
+	}
 }
 
 void Node::prune(double threshold){
 	for(ZMap<WordID, double>::iterator iter=probs.begin();iter!=probs.end();){
 		ZMap<WordID, double>::iterator curIter=iter;
 		iter++;
-		if(curIter->second<=threshold)
-		{
+		if(curIter->second<=threshold){
 			WordID wrd=curIter->first;
 			probs.erase(probs.find(wrd));
 			types.erase(types.find(wrd));
@@ -62,8 +64,9 @@ double& LM::setProb(WordID wrd, WordID* context, int clen){
 
 Node* LM::addFracCount(WordID wrd, WordID* context, int clen, double fcount, double ftype){
 	Node* pNode=setNode(context,clen);
-	if(pNode->probs.find(wrd)==pNode->probs.end())
+	if(pNode->probs.find(wrd)==pNode->probs.end()){
 		pNode->probs[wrd]=0;
+	}
 	pNode->probs[wrd]+=fcount;
 	pNode->types[wrd].update(ftype);
 
@@ -145,7 +148,7 @@ double& LM::setBackoff(WordID* context, int clen){
 	return pNode->bow;
 }
 
-double LM::probBO(WordID wrd, WordID* context, int clen){
+double LM::probBO(WordID wrd, WordID* context, int clen){//i confirmed that this function is CORRECT.
 	double prob=0;
 	double bow=0;
 	Node* pNode=&_root;
@@ -308,27 +311,70 @@ void LM::setKNcountsByLayer(Node& node, WordVector& context, int order){
 }
 
 void LM::setKNcountsByLayerTam(Node& node, WordVector& context, int order, double threshold){
-	if(order>1)
-	{
-		for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++)
-		{
+	if(order>1){
+		for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
 			context.push_back(iter->first);
 			setKNcountsByLayerTam(iter->second,context,order-1,threshold);
 			context.pop_back();
 		}
 	}
-	else
-	{
+	else{
 		int clen=(int)context.size()-1;
-		if(clen<0)return;
+		if(clen<0){
+			return;
+		}
 		//cerr<<"lostType size:"<<node.types.size()<<endl;
 		for(ZMap<WordID,double>::iterator probIter=node.probs.begin();probIter!=node.probs.end();probIter++){
 			double count=probIter->second;
-			if(count>threshold)count=1;
+			if(count>threshold){
+				count=1;
+			}
 			addFracCount(probIter->first,&context[0],clen,count,count);
 		}
 	}
 }
+
+void LM::getProbBoByLayer(Node& node,WordVector& context,int order){
+	if(order>1){
+		for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
+			context.push_back(iter->first);
+			getProbBoByLayer(iter->second,context,order-1);
+			context.pop_back();
+		}
+	}
+	else{
+		int clen = (int)context.size() - 1;
+		if(clen < 0){
+			return;
+		}
+		for(ZMap<WordID,FracType>::iterator typeIter=node.types.begin();typeIter!=node.types.end();typeIter++){
+
+		}
+	}
+
+	double prob=0;
+	double bow=0;
+	Node* pNode=&_root;
+	for(;clen>=0;context++,clen--){
+		if(pNode->probs.find(wrd)!=pNode->probs.end()){
+			prob=pNode->probs[wrd];
+			bow=0;
+		}
+		if(clen==0){
+			break;
+		}
+		WordID cwrd=*context;
+		if(pNode->childs.find(cwrd)==pNode->childs.end()){
+			break;
+		}
+		pNode=&(pNode->childs[cwrd]);
+		bow+=pNode->bow;
+	}
+	double penalty=0; //in case clen > 0
+	return prob+bow+penalty*clen;
+
+}
+
 
 void LM::setMissKNcountsByLayer(Node& node, WordVector& context, int order){
 	if(order>1){
@@ -384,6 +430,7 @@ void LM::cleanBadEntriesByLayer(Node& node, WordVector& context, int order){
 
 
 void LM::calculateDiscounts(vector<vector<double> >& discounts, bool logrized){
+	cerr<<"order()="<<order()<<endl;
 	for(int i=0;i<order();i++){
 		vector<double> discount;
 		discounts.push_back(discount);
@@ -428,10 +475,14 @@ int discountSlot(double count){
 }
 
 void LM::calcNumOfGrams(Node& node, int order){
-	while((int)_numofGrams.size()<=order)_numofGrams.push_back(0);
+	while((int)_numofGrams.size()<=order){
+		_numofGrams.push_back(0);
+	}
 	_numofGrams[order]+=(int)node.probs.size();
-	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++)
+	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
 		calcNumOfGrams(iter->second,order+1);
+	}
+	return ;
 }
 
 void LM::reComputeLowerCount(){
@@ -514,7 +565,7 @@ void LM::collectCountofCount(Node& node, vector<double>& coc, int order, bool lo
 		for(ZMap<WordID,FracType>::iterator typeIter=node.types.begin();typeIter!=node.types.end();typeIter++){
 			FracType& ftype=typeIter->second;
 			for(int i=1;i<5;i++){
-				coc[i-1]+=ftype[i];
+				coc[i-1]+=ftype[i];//coc[i] = E[n_{i+1}](0<=i<=3)
 			}
 		}
 	}
@@ -522,15 +573,13 @@ void LM::collectCountofCount(Node& node, vector<double>& coc, int order, bool lo
 
 void LM::resetVocab(){
 	vector<int> ids(_vocab.size(),0);
-	for(ZMap<WordID,double>::iterator iter=_root.probs.begin();iter!=_root.probs.end();iter++)
-	{
+	for(ZMap<WordID,double>::iterator iter=_root.probs.begin();iter!=_root.probs.end();iter++){
 		ids[iter->first]=1;
 	}
 	ids[_vocab.lookup(sent_begin,false)]=1;
 	ids[_vocab.lookup(sent_end,false)]=1;
 	ids[_vocab.lookup(unk,false)]=1;
-	for(size_t id=1;id<ids.size();id++)
-	{
+	for(size_t id=1;id<ids.size();id++){
 		if(ids[id]==0)_vocab.remove((int)id);
 	}
 }
@@ -549,21 +598,26 @@ void LM::knEstimate(bool isBackWard, bool interpolate, DiscountType dt, double *
 		}
 	}
 	else{
-		setKNcounts(isBackWard);
+		//cerr<<"start counting"<<endl;
+		setKNcounts();
+		//cerr<<"end counting"<<endl;
+		//cerr<<"start calculating discounts"<<endl;
 		calculateDiscounts(discounts);
+		//cerr<<"end calculating discounts"<<endl;
 	}
 	if(dt==D_AD){
-		cerr<<"start ad"<<endl;
+		//cerr<<"start ad"<<endl;
 		adEstimate(_root, discounts, 0);
+		//cerr<<"end ad"<<endl;
 	}
 	else{
 		wbEstimate(_root);
 	}
-	cerr<<"start compute bow"<<endl;
+	//cerr<<"start compute bow"<<endl;
 	computeBOW(interpolate);
-	cerr<<"start resetVocab"<<endl;
+	//cerr<<"start resetVocab"<<endl;
 	//resetVocab();
-	cerr<<"start set Some details"<<endl;
+	//cerr<<"start set Some details"<<endl;
 }
 
 void LM::normalize(){
@@ -587,9 +641,12 @@ void LM::adEstimate(Node& node, vector<vector<double> >& discounts, int order){
 		for(ZMap<WordID,double>::iterator iter=node.probs.begin();iter!=node.probs.end();iter++){
 			total+=iter->second;//iter->second = E[c(uw)]
 			FracType& ft=node.types[iter->first];
-			double dMass=discountMass(ft,discount);//p(c(uw)=1)*D_{1} + p(c(uw)=2)*D_{2} + p(c(uw)>=3)*D_{3+}
-		iter->second-=dMass;
-		subtract+=dMass;
+			//cerr<<"start getting discountMass"<<endl;
+			double dMass=discountMass(ft,discount);
+			//cerr<<"end getting discountMass"<<endl;
+			//p(c(uw)=1)*D_{1} + p(c(uw)=2)*D_{2} + p(c(uw)>=3)*D_{3+}
+			iter->second-=dMass;
+			subtract+=dMass;
 		}
 
 		if(isBadNumber(log10(subtract))){
@@ -618,18 +675,28 @@ void LM::adEstimate(Node& node, vector<vector<double> >& discounts, int order){
 	}
 
 	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
+		//cerr<<"going down one layer"<<endl;
 		adEstimate(iter->second,discounts,order+1);
+		//cerr<<"back from layer below"<<endl;
 	}
 }
 
-void LM::setKNcounts(bool isBackWard){
+/*void LM::setKNcounts(){// this one works if order() <= 2.
 	for(int i=2; i <= order(); i++){
 		int layer = i;
-		//if(isBackWard)layer=order()-layer+2;
 		WordVector context;
 		clearCountsByLayer(_root,layer-1,_vocab.add(sent_begin));
 		setKNcountsByLayer(_root,context,layer);
 	}
+}*/
+
+void LM::setKNcounts(){// we need to propagate counts backwards
+	for(int i=order(); i >= 2; i--){
+		WordVector context;
+		clearCountsByLayer(_root,i-1,_vocab.add(sent_begin));
+		setKNcountsByLayer(_root,context,i);
+	}
+	return ; 
 }
 
 void LM::setKNcountsTam(double threshold){
@@ -861,8 +928,8 @@ void LM::estimate(Smoothing sm, bool interpolate, double* tamcutoff){
 		knEstimate(interpolate,tamcutoff);
 	}
 	/*else if(sm==WB){
-		wbEstimate(interpolate,tamcutoff);
-	}*/
+	  wbEstimate(interpolate,tamcutoff);
+	  }*/
 	else if(sm==NO){
 		mlEstimate(_root);
 	}
@@ -994,4 +1061,5 @@ void LM::addNgram(WordVector& context,WordID wrd, double count){//context should
 	if(count>1E-10){
 		addFracCount(wrd, &context[0], context.size(), count, count);
 	}	
+	return ;
 }
