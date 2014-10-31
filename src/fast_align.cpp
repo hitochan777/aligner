@@ -435,10 +435,10 @@ int main(int argc, char** argv) {
 					break;
 				case KN:
 					if(semi_final_iteration){
-						t2s.copyFromKneserNeyLM(true);
+						t2s.copyFromKneserNeyLM(true,true);
 					}
 					else{
-						t2s.copyFromKneserNeyLM(false);
+						t2s.copyFromKneserNeyLM(false,false);
 					}
 				case NO:
 				default:

@@ -102,43 +102,17 @@ void TTable::Normalize() {
 	counts.resize(n+1);
 }
 
-void TTable::copyFromKneserNeyLM(bool copyAll){
+void TTable::copyFromKneserNeyLM(bool copyBOW, bool  copyAllProb){
 	lm.setOrder(n+1);
 	cerr<<"kn Estimate start"<<endl;
 	lm.knEstimate(true);//interpolation is set to true.
 	cerr<<"kn Estimate end"<<endl;
 	ttables.clear();
-	ttables.resize(n+1,0);
-	if(copyAll){
-		for(int i = 0; i <= n ;++i){
-			for(WordVector2Word2Double::iterator it = ttables[n].begin();it!=ttables[n].end();++it){
-				for(Word2Double::iterator it2 = it->second.begin();it2 != it->second.end();++it2){
-					if(it->first.empty()){
-						it2->second = lm.probBO(it2->first,NULL,0);
-					}
-					else{
-						WordVector wv(it->first);
-						reverse(wv.begin(),wv.end());
-						it2->second = lm.probBO(it2->first,&wv[0],(int)(it->first.size()));
-					}
-				}
-			}
-		}
-	} 
-	else{
-		for(WordVector2Word2Double::iterator it = ttables[n].begin();it!=ttables[n].end();++it){
-			for(Word2Double::iterator it2 = it->second.begin();it2 != it->second.end();++it2){
-				if(it->first.empty()){
-					it2->second = lm.probBO(it2->first,NULL,0);
-				}
-				else{
-					WordVector wv(it->first);
-					reverse(wv.begin(),wv.end());
-					it2->second = lm.probBO(it2->first,&wv[0],(int)(it->first.size()));
-				}
-			}
-		}
+	ttables.resize(n+1);
+	if(copyBOW){
+		lm.copyBOW(this->bow);
 	}
+	lm.copyDiscountedProb(this->ttables,copyAllProb);
 	cerr<<"copy done"<<endl;
 	lm.clear();
 	cerr<<"clear done"<<endl;	

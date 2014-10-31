@@ -147,6 +147,8 @@ class LM{
 		}
 
 		void resetVocab();
+		void copyDiscountedProb(VWV2WD& ttables,bool copyAllProb = false);
+		void copyBOW(WV2D& bow);
 
 	private:
 		void calcNumOfGrams(){
@@ -170,6 +172,8 @@ class LM{
 		void setKNcountsByLayerTam(Node& node, WordVector& context, int order, double threshold);
 		void setMissKNcountsByLayer(Node& node, WordVector& context, int order);
 		void cleanBadEntriesByLayer(Node& node, WordVector& context, int order);
+		void _copyDiscountedProb(Node& node,WordVector& context,VWV2WD& ttables,bool copyAllProb);
+		void _copyBOW(Node& node,WordVector& context,WV2D& bow);
 
 		vector<int> _numofGrams;
 		Node _root;

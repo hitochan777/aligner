@@ -41,7 +41,7 @@ class TTable {
 		void ShowCounts(Dict& d);
 		void ShowTTable(int index, Dict& d);
 		void ShowTTable(Dict& d);
-		void copyFromKneserNeyLM(bool copyAll = false);
+		void copyFromKneserNeyLM(bool copyAll = false,bool copyAllProb = false);
 		static WordVector makeWordVector(WordVector& trg,int index,int history, WordID kNULL);
 		//void ExportToFile(const char* filename, Dict& d);
 
@@ -51,8 +51,10 @@ class TTable {
 	public:
 		VWV2WD ttables;
 		VWV2WD counts;
+		WV2D bow;//backoff weight
 		LM lm;
-		int n;//how many target words to consider in P(f|e_{i},e_{i+1},e_{i+n})
+		int n;//how many target words to consider in P(f|e_{i},e_{i+1},e_{i+n}). this corresponds to history + 1
+		
 };
 
 #endif

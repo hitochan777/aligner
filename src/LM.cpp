@@ -162,6 +162,18 @@ double LM::probBO(WordID wrd, WordID* context, int clen){//i confirmed that this
 		}
 		WordID cwrd=*context;
 		if(pNode->childs.find(cwrd)==pNode->childs.end()){
+			/*
+			 * P_{BO}(w|u) =
+			 * 		P*(w|u) (uw is in model)
+			 *		\beta(u)P_{BO} (otherwise)
+			 * here P* is discounted probability and \beta(u) is discount weight.
+			 * \beta(u) is represented as follows.
+			 * \beta(u) = \frac{1-\sum_{w:uw is in model}P*(w|u)}{1-\sum_{w:uw is in model}P*(w|u')}
+			 * For the derivation of \beta(u), please refer to http://cxwangyi.wordpress.com/2010/07/28/backoff-in-n-gram-language-models/
+			 * 
+			 * So in this case, that is, if no context is found in the learned model, {w:uw is in model} is empty set. Therefore, \beta{u} = 1
+			 * If we take log, then there is nothing to add to current bow, so we just break from the for loop.
+			 * */
 			break;
 		}
 		pNode=&(pNode->childs[cwrd]);
@@ -333,48 +345,6 @@ void LM::setKNcountsByLayerTam(Node& node, WordVector& context, int order, doubl
 		}
 	}
 }
-
-void LM::getProbBoByLayer(Node& node,WordVector& context,int order){
-	if(order>1){
-		for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
-			context.push_back(iter->first);
-			getProbBoByLayer(iter->second,context,order-1);
-			context.pop_back();
-		}
-	}
-	else{
-		int clen = (int)context.size() - 1;
-		if(clen < 0){
-			return;
-		}
-		for(ZMap<WordID,FracType>::iterator typeIter=node.types.begin();typeIter!=node.types.end();typeIter++){
-
-		}
-	}
-
-	double prob=0;
-	double bow=0;
-	Node* pNode=&_root;
-	for(;clen>=0;context++,clen--){
-		if(pNode->probs.find(wrd)!=pNode->probs.end()){
-			prob=pNode->probs[wrd];
-			bow=0;
-		}
-		if(clen==0){
-			break;
-		}
-		WordID cwrd=*context;
-		if(pNode->childs.find(cwrd)==pNode->childs.end()){
-			break;
-		}
-		pNode=&(pNode->childs[cwrd]);
-		bow+=pNode->bow;
-	}
-	double penalty=0; //in case clen > 0
-	return prob+bow+penalty*clen;
-
-}
-
 
 void LM::setMissKNcountsByLayer(Node& node, WordVector& context, int order){
 	if(order>1){
@@ -1061,5 +1031,54 @@ void LM::addNgram(WordVector& context,WordID wrd, double count){//context should
 	if(count>1E-10){
 		addFracCount(wrd, &context[0], context.size(), count, count);
 	}	
+	return ;
+}
+
+void LM::copyDiscountedProb(VWV2WD& ttables,bool copyAllProb){
+	int len = ttables.size();
+	ttables.clear();
+	ttables.resize(len);
+	WordVector context;
+	_copyDiscountedProb(_root,context,ttables,copyAllProb);
+}
+
+void LM::_copyDiscountedProb(Node& node,WordVector& context,VWV2WD& ttables,bool copyAllProb){
+	int len = context.size();
+	if(copyAllProb || node.childs.empty()){
+		for(ZMap<WordID,double>::iterator it = node.probs.begin();it != node.probs.begin();++it){
+			WordVector wv(context);
+			reverse(wv.begin(),wv.end());
+			ttables[len][wv][it->first] = it->second;
+		}
+	}
+	if(node.childs.empty()){
+		return ;
+	}
+	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
+		context.push_back(iter->first);
+		_copyDiscountedProb(iter->second,context,ttables,copyAllProb);
+		context.pop_back();
+	}
+	return ;
+}
+
+void LM::copyBOW(WV2D& bow){
+	bow.clear();
+	WordVector context;
+	_copyBOW(_root, context, bow);
+}
+
+void LM::_copyBOW(Node& node,WordVector& context,WV2D& bow){
+	WordVector wv(context);
+	reverse(wv.begin(),wv.end());
+	bow[wv] = node.bow;
+	if(node.childs.empty()){
+		return ;
+	}
+	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){
+		context.push_back(iter->first);
+		_copyBOW(iter->second,context,bow);
+		context.pop_back();
+	}
 	return ;
 }

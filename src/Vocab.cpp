@@ -33,7 +33,7 @@ void
 Vocab::
 remove(int id)
 {
-	if(id>=_int2str.size())
+	if(id>=(int)_int2str.size())
 		return; 
 	string str=_int2str[id];
 	//_int2str.erase(_int2str.begin()+id);

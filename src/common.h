@@ -36,6 +36,7 @@ typedef vector<Word2Double> Word2Word2Double;
 typedef unordered_map<WordVector,Word2Double,container_hash<WordVector> > WordVector2Word2Double;
 typedef unordered_map<WordVector,double> WordVector2Double;
 typedef vector<WordVector2Word2Double> VWV2WD;
+typedef	unordered_map<WordVector,double,container_hash<WordVector>> WV2D;
 /********************************************************************/
 
 constexpr unsigned int str2int(const char* str, int h = 0){
