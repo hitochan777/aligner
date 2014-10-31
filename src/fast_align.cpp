@@ -299,8 +299,7 @@ int main(int argc, char** argv) {
 				double sum = 0;
 				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
-					WordVector wv;
-					wv.push_back(kNULL);
+					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
 						prob_a_i = prob_align_null;
 					}
@@ -360,8 +359,7 @@ int main(int argc, char** argv) {
 				else{
 					if (use_null) {
 						double count = probs[0] / sum;
-						WordVector wv;
-						wv.push_back(kNULL);
+						WordVector wv = WordVector(HISTORY+1,kNULL);
 						c0 += count;
 						if(smooth == KN){
 							t2s.lm.addNgram(wv, f_j, count);
@@ -377,8 +375,14 @@ int main(int argc, char** argv) {
 							reverse(vec.begin(),vec.end());
 							t2s.lm.addNgram(vec,f_j,p);
 						}
-						else{
-							t2s.Increment(TTable::makeWordVector(trg, i-1, HISTORY, kNULL), f_j, p);
+						else{	
+							WordVector wv = TTable::makeWordVector(trg, i-1, HISTORY, kNULL);
+							if(wv.size()!=HISTORY+1){
+								cerr<<"makeWordVector generated malign vector"<<endl;
+								return 1;
+							}
+							t2s.Increment(wv, f_j, p);
+							
 						}
 						emp_feat += DiagonalAlignment::Feature(j, i, trg.size(), src.size()) * p;//what is this line doing?
 					}
@@ -532,8 +536,7 @@ int main(int argc, char** argv) {
 				double max_pat = 0;
 				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
-					WordVector wv;
-					wv.push_back(kNULL);
+					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
 						prob_a_i = prob_align_null;
 					}

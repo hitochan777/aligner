@@ -1,4 +1,5 @@
 #include "ttables.h"
+#include <new>
 
 using namespace std;
 
@@ -39,10 +40,20 @@ double TTable::backoffProb(const WordVector& e, const WordID& f) const{
 }
 
 void TTable::Increment(const WordVector& e, const int& f) {
+	int len = e.size();
+	if(len!=n){
+		cerr<<"size is not correct in Increment"<<endl;	
+		return ;
+	}
 	counts[n][e][f] += 1.0;
 }
 
 void TTable::Increment(const WordVector& e, const int& f, double x) {
+	int len = e.size();
+	if(len!=n){
+		cerr<<"size is not correct in Increment"<<endl;	
+		return ;
+	}
 	counts[n][e][f] += x;
 }
 
@@ -62,17 +73,29 @@ void TTable::NormalizeVB(const double alpha) {
 		}
 	}
 	counts.clear();
+	counts.resize(n+1);
 }
 
 void TTable::Normalize() {
 	ttables.swap(counts);
 	for (WordVector2Word2Double::iterator it = ttables[n].begin(); it != ttables[n].end(); ++it) {
+		if(it->first.size()!=n){
+			cerr<<"size is NOT CORRECT"<<endl;
+			return ;	
+		}
 		double tot = 0;
-		Word2Double& cpd = it->second;	
+		Word2Double& cpd = it->second;
 		for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
 			for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
-				ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
-					+= ttables[n][it->first][it2->first];
+				try{
+					ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
+						+= ttables[n][it->first][it2->first];
+				}
+				catch (bad_alloc& ba){
+					cerr << "bad_alloc caught: " << ba.what() << '\n';
+					cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
+					return; 
+				}	      
 			}
 			tot += it2->second;
 		}
@@ -83,6 +106,7 @@ void TTable::Normalize() {
 			it2->second /= tot;
 		}
 	}
+
 	for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~n grams 
 		for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
 			double tot = 0;

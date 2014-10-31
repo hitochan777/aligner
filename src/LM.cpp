@@ -398,21 +398,20 @@ void LM::cleanBadEntriesByLayer(Node& node, WordVector& context, int order){
 	}
 }
 
-
 void LM::calculateDiscounts(vector<vector<double> >& discounts, bool logrized){
-	cerr<<"order()="<<order()<<endl;
+	//cerr<<"order()="<<order()<<endl;
 	for(int i=0;i<order();i++){
 		vector<double> discount;
 		discounts.push_back(discount);
 		vector<double> coc(4,0);
 		collectCountofCount(_root,coc,i+1,logrized);
 		calculateDiscount(coc,discounts[i]);
-		for(int j=0;j<(int)coc.size();j++){
+		/*for(int j=0;j<(int)coc.size();j++){
 			cerr<<"n"<<j+1<<": "<<coc[j]<<endl;
-		}
-		for(int j=0;j<(int)discounts[i].size()-1;j++){
+		}*/
+		/*for(int j=0;j<(int)discounts[i].size()-1;j++){
 			cerr<<"D"<<j+1<<": "<<discounts[i][j]<<endl;
-		}
+		}*/
 	}
 }
 
