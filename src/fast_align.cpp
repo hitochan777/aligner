@@ -550,7 +550,7 @@ int main(int argc, char** argv) {
 					if (favor_diagonal){
 						prob_a_i = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
 					}
-					double pat = t2s.prob(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
+					double pat = t2s.backoffProb(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
 					if (pat > max_pat){
 						max_pat = pat;
 						a_j = i;
