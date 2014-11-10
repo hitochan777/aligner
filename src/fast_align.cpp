@@ -261,12 +261,16 @@ int main(int argc, char** argv) {
 			++lc;
 			if (lc % 1000 == 0) { 
 				fprintf(tof,".");
-				fprintf(stderr,".");
+				if(tof!=stderr){
+					fprintf(stderr,".");
+				}
 				flag = true;
 			}
 			if (lc %50000 == 0) { 
 				fprintf(tof," [%d]\n",lc);
-				fprintf(stderr," [%d]\n",lc);
+				if(tof!=stderr){
+					fprintf(stderr," [%d]\n",lc);
+				}
 				flag = false;
 			}
 			src.clear();
