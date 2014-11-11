@@ -347,10 +347,12 @@ int main(int argc, char** argv) {
 									fprintf(taof," ");
 								}
 								if (is_reverse){
-									fprintf(taof,"%d-%d",j, max_index - 1);
+									//fprintf(taof,"%d-%d",j, max_index - 1);
+									fprintf(taof,"%d-%d", max_index - 1, j);
 								}
 								else{
-									fprintf(taof,"%d-%d",max_index - 1, j);
+									//fprintf(taof,"%d-%d", max_index - 1, j);
+									fprintf(taof,"%d-%d", j , max_index - 1);
 								}
 							}
 						}
@@ -572,10 +574,13 @@ int main(int argc, char** argv) {
 							fprintf(taof," ");
 						}
 						if (is_reverse){
-							fprintf(taof,"%d-%d",j , a_j - 1);
-						}
-						else{
+							//fprintf(taof,"%d-%d",j , a_j - 1);
 							fprintf(taof, "%d-%d", a_j - 1, j);
+
+						}
+						else{	
+							//fprintf(taof, "%d-%d", a_j - 1, j);
+							fprintf(taof,"%d-%d",j , a_j - 1);
 						}
 					}
 				}
