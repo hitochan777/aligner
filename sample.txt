@@ -1,0 +1,6 @@
+das Haus ||| the house 
+das Buch ||| the book 
+ein Buch ||| a book
+Buch ein ||| book a
+Buch ein ||| book a
+das Buch ||| book the
