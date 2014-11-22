@@ -4,8 +4,8 @@
 using namespace std;
 
 TTable::TTable(int _n){
-	this->n = _n;
-	ttables.resize(_n+1);
+	this->n = _n;//length of vector e
+	ttables.resize(_n+1);//index of ttable and counts shows the length of vector e
 	counts.resize(_n+1);
 }
 
@@ -197,7 +197,7 @@ WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID k
 }	
 
 void TTable::_ShowCounts(int index, Dict& d) {
-	for (WordVector2Word2Double::const_iterator it = counts[index-1].begin(); it != counts[index-1].end(); ++it) {
+	for (WordVector2Word2Double::const_iterator it = counts[index].begin(); it != counts[index].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (Word2Double::const_iterator it2 =  cpd.begin();it2!=cpd.end();++it2){
 			cerr << "c(" << d.Convert(it2->first) << '|' << d.Convert(it->first) << ") = " << it2->second << endl;
@@ -209,7 +209,7 @@ void TTable::_ShowTTable(int index, Dict& d){
 	fprintf(stderr,"showing %d-gram prob table\n",index);
 	fprintf(stderr,"size: %lu\n",ttables[index-1].size());
 	fprintf(stderr,"skipping cell with zero prob\n");
-	for (WordVector2Word2Double::const_iterator it = ttables[index-1].begin(); it != ttables[index-1].end(); ++it) {
+	for (WordVector2Word2Double::const_iterator it = ttables[index].begin(); it != ttables[index].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (Word2Double::const_iterator it2 =  cpd.begin();it2!=cpd.end();++it2){
 			if(it2->second==0){
