@@ -604,7 +604,7 @@ void LM::prune(Node& node, double* thresholds, int order){
 void LM::adEstimate(Node& node, vector<vector<double> >& discounts, int order){
 	vector<double> discount=discounts[order];
 	double subtract=0;
-	double total=0;//total = \sum_{w} E[c(uw)] = E[c(w?)]
+	double total=0;//total = \sum_{w} E[c(uw)] = E[c(u?)]
 	if(node.probs.size()>0){
 		for(ZMap<WordID,double>::iterator iter=node.probs.begin();iter!=node.probs.end();iter++){
 			total+=iter->second;//iter->second = E[c(uw)]
