@@ -120,7 +120,8 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("force_align,f",po::value<string>(), "Load previously written parameters to 'force align' input. Set --diagonal_tension and --mean_srclen_multiplier as estimated during training.")
 		("mean_srclen_multiplier,m",po::value<double>()->default_value(1), "When --force_align, use this source length multiplier")
 		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.")
-		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2");
+		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
+		("show_ttable","whether to output ttable");
 	po::options_description clo("Command line options");
 	clo.add_options()
 		("config", po::value<string>(), "Configuration file")
@@ -175,6 +176,7 @@ int main(int argc, char** argv) {
 	bool optimize_tension = conf.count("optimize_tension");
 	bool hide_training_alignments = (conf.count("hide_training_alignments") > 0);
 	const bool write_alignments = (conf.count("force_align")) ? true : !hide_training_alignments;
+	const bool show_ttable = conf.count("show_ttable")>0;
 	const int HISTORY = conf["history"].as<int>();
 	const bool ONE_INPUT_FILE = ffname.empty(); 
 	const bool ONE_TEST_FILE = ftestset.empty();
@@ -597,7 +599,9 @@ int main(int argc, char** argv) {
 				fclose(taof);
 			}
 		}
-
+		if(show_ttable){
+			t2s.ShowTTable(d);
+		}
 		return 0;
 	}
 
