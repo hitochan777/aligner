@@ -77,6 +77,7 @@ void TTable::NormalizeVB(const double alpha) {
 		}
 	}
 	counts.clear();
+	VWV2WD().swap(counts);
 	counts.resize(n+1);
 }
 
@@ -123,6 +124,7 @@ void TTable::Normalize() {
 		}
 	}
 	counts.clear();
+	VWV2WD().swap(counts);
 	counts.resize(n+1);
 }
 
@@ -133,6 +135,7 @@ void TTable::copyFromKneserNeyLM(bool copyBOW, bool  copyAllProb){
 	cerr<<"kn Estimate end"<<endl;
 	//lm.write("/home/otsuki/Research/aligner/debug.txt");
 	ttables.clear();
+	VWV2WD().swap(ttables);
 	ttables.resize(n+1);
 	if(copyBOW){
 		lm.copyBOW(this->bow);
