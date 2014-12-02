@@ -33,6 +33,13 @@ int toks = 0;
 unordered_map<pair<short, short>, unsigned,PairHash > size_counts;
 
 /***********************************************************************/
+void printVector(const vector<unsigned>& v){
+	for(int i = 0;i<v.size();++i){
+		cerr<<d.Convert(v[i])<<" ";
+	}
+	cerr<<endl<<flush;
+	return ;
+}
 
 void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 	static const unsigned kDIV = d.Convert("|||");
@@ -45,12 +52,14 @@ void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 		src->push_back(tmp[i]);
 		++i;
 	}
+	// printVector(*src);
 	if (i < tmp.size() && tmp[i] == kDIV) {
 		++i;
 		for (; i < tmp.size() ; ++i){
 			trg->push_back(tmp[i]);
 		}
 	}
+	// printVector(*trg);
 }
 
 void ParseLineFromSeparateFiles(const string& fline,const string& eline,vector<unsigned>* src,vector<unsigned>* trg){
@@ -61,11 +70,13 @@ void ParseLineFromSeparateFiles(const string& fline,const string& eline,vector<u
 	for(unsigned i = 0;i < tmp.size();++i) {
 		src->push_back(tmp[i]);
 	}
+	// printVector(*src);
 	tmp.clear();
 	d.ConvertWhitespaceDelimitedLine(eline, &tmp);
 	for(unsigned i = 0;i < tmp.size();++i) {
 		trg->push_back(tmp[i]);
 	}
+	// printVector(*trg);
 	return ;
 }
 
@@ -466,17 +477,13 @@ int main(int argc, char** argv) {
 			prob_align_not_null = 1.0 - prob_align_null;
 		}
 		if(ONE_INPUT_FILE){
-			in.close();	
+			in.close();
 		}
 		else{
 			fin.close();
 			ein.close();	
 		}
 	}
-	/*if (!conditional_probability_filename.empty()) {
-	  cerr << "conditional probabilities: " << conditional_probability_filename << endl;
-	  t2s.ExportToFile(conditional_probability_filename.c_str(), d);
-	  }*/
 
 	if(tof!=stderr){
 		fclose(tof);

@@ -218,7 +218,7 @@ void TTable::_ShowTTable(int index, Dict& d){
 	for (WordVector2Word2Double::const_iterator it = ttables[index].begin(); it != ttables[index].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (Word2Double::const_iterator it2 =  cpd.begin();it2!=cpd.end();++it2){
-			if(it2->second==0){
+			if(it2->second<0.1){
 			       	continue;//do not print prob with 0
 			}
 			fprintf(stderr,"Pr(%s|%s) = %lf\n", d.Convert(it2->first).c_str(), d.Convert(it->first).c_str(),it2->second);
