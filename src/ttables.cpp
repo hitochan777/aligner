@@ -81,22 +81,24 @@ void TTable::NormalizeVB(const double alpha) {
 	counts.resize(n+1);
 }
 
-void TTable::Normalize() {
+void TTable::Normalize(bool lower) {
 	ttables.swap(counts);
 	for (WordVector2Word2Double::iterator it = ttables[n].begin(); it != ttables[n].end(); ++it) {
 		double tot = 0;
 		Word2Double& cpd = it->second;
 		for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-			for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
-				try{
-					ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
-						+= ttables[n][it->first][it2->first];
+			if(lower){
+				for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
+					try{
+						ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
+							+= ttables[n][it->first][it2->first];
+					}
+					catch (bad_alloc& ba){
+						cerr << "bad_alloc caught: " << ba.what() << '\n';
+						cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
+						return; 
+					}	      
 				}
-				catch (bad_alloc& ba){
-					cerr << "bad_alloc caught: " << ba.what() << '\n';
-					cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
-					return; 
-				}	      
 			}
 			tot += it2->second;
 		}
@@ -107,19 +109,20 @@ void TTable::Normalize() {
 			it2->second /= tot;
 		}
 	}
-
-	for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~n grams 
-		for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
-			double tot = 0;
-			Word2Double& cpd = it->second;
-			for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-				tot += it2->second;
-			}
-			if (!tot){
-				tot = 1;
-			}
-			for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-				it2->second /= tot;
+	if(lower){
+		for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~(n-1) grams 
+			for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
+				double tot = 0;
+				Word2Double& cpd = it->second;
+				for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
+					tot += it2->second;
+				}
+				if (!tot){
+					tot = 1;
+				}
+				for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
+					it2->second /= tot;
+				}
 			}
 		}
 	}

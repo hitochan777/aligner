@@ -303,13 +303,13 @@ int main(int argc, char** argv) {
 			for (unsigned j = 0; j < src.size(); ++j) {
 				const unsigned& f_j = src[j];
 				double sum = 0;
-				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
+				double prob_a_j = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
 					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
-						prob_a_i = prob_align_null;
+						prob_a_j = prob_align_null;
 					}
-					probs[0] = t2s.prob(wv, f_j) * prob_a_i;
+					probs[0] = t2s.prob(wv, f_j) * prob_a_j;
 					sum += probs[0];
 				}
 				double az = 0;
@@ -318,9 +318,9 @@ int main(int argc, char** argv) {
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
-						prob_a_i = DiagonalAlignment::UnnormalizedProb(j + 1, i, src.size(), trg.size(), diagonal_tension) / az;
+						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, src.size(), trg.size(), diagonal_tension) / az;
 					}
-					probs[i] = t2s.prob(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
+					probs[i] = t2s.prob(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					sum += probs[i];
 				}
 				if (final_iteration) {
@@ -453,7 +453,12 @@ int main(int argc, char** argv) {
 					break;
 				case NO:
 				default:
-					t2s.Normalize();
+					if(semi_final_iteration){
+						t2s.Normalize(true);
+					}
+					else{
+						t2s.Normalize(false);
+					}
 					break;
 			}
 			//prob_align_null *= 0.8; // XXX
@@ -541,13 +546,13 @@ int main(int argc, char** argv) {
 				double sum = 0;
 				int a_j = 0;
 				double max_pat = 0;
-				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
+				double prob_a_j = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
 					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
-						prob_a_i = prob_align_null;
+						prob_a_j = prob_align_null;
 					}
-					max_pat = t2s.backoffProb(wv, f_j) * prob_a_i;
+					max_pat = t2s.backoffProb(wv, f_j) * prob_a_j;
 					sum += max_pat;
 				}
 				double az = 0;
@@ -556,9 +561,9 @@ int main(int argc, char** argv) {
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
-						prob_a_i = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
+						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
 					}
-					double pat = t2s.backoffProb(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
+					double pat = t2s.backoffProb(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					if (pat > max_pat){
 						max_pat = pat;
 						a_j = i;

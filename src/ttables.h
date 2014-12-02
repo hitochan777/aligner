@@ -32,7 +32,7 @@ class TTable {
 		void Increment(const WordVector& e, const int& f);
 		void Increment(const WordVector& e, const int& f, double x);
 		void NormalizeVB(const double alpha);
-		void Normalize();
+		void Normalize(bool lower);
 		void knEstimate();
 		TTable& operator+=(const TTable& rhs);
 		void ShowCounts(int index, Dict& d);
