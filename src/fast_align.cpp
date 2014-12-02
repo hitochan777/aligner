@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
 				}
 				double az = 0;
 				if (favor_diagonal){
-					az = DiagonalAlignment::ComputeZ(j+1, src.size(), trg.size(), diagonal_tension) / prob_align_not_null;
+					az = DiagonalAlignment::ComputeZ(j + 1, src.size(), trg.size(), diagonal_tension) / prob_align_not_null;
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
