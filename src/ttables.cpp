@@ -146,6 +146,7 @@ void TTable::copyFromKneserNeyLM(bool copyBOW, bool  copyAllProb){
 	lm.copyDiscountedProb(this->ttables,copyAllProb);
 	cerr<<"copy done"<<endl;
 	lm.clear();
+	VWV2WD().swap(lm);
 	cerr<<"clear done"<<endl;	
 	return ;
 }
