@@ -24,6 +24,62 @@ struct Md {
 	}
 };
 
+
+struct ContextVector{
+	static WordVector previousWordVector(WordVector& trg,int index,int history,WordID kNULL){//index start from 0
+		int trglen = trg.size();
+		if(history<0){
+			throw invalid_argument("history must be non-negative integer.");
+		}	
+		if( index < 0 || index >= trglen ){
+			throw invalid_argument("index is out of range in makeWordVector.");	
+		}
+		if( index - history < 0 ){
+			WordVector wv;
+			for(int i = 0; i < history - index; ++i){
+				wv.push_back(kNULL);
+			}
+			wv.insert(wv.end(),&trg[0],&trg[index]+1);
+			return wv;
+		}
+		return WordVector(&trg[index]-history,&trg[index]+1);
+	}	
+
+	static WordVector leftRightAlternateVector(WordVector& trg,int index,int order,WordID kNULL){
+		int trglen = trg.size();
+		if(order<0){
+			throw invalid_argument("history must be non-negative integer.");
+		}	
+		if( index < 0 || index >= trglen ){
+			throw invalid_argument("index is out of range in makeWordVector.");	
+		}
+		WordVector wv;
+		for(int i = 0;i<order;++i){
+			int window = i/2+1;
+			if(i%2){//odd -> right
+				int location = index+window;
+				if(location>=trglen){
+					wv.push_back(kNULL);	
+				}
+				else{
+					wv.push_back(trg[location]);
+				}
+			}
+			else{//odd -> left
+				int location = index-window;
+				if(location<0){
+					wv.push_back(kNULL);	
+				}
+				else{
+					wv.push_back(trg[location]);	
+				}
+			}
+		}
+		wv.push_back(trg[index]);
+		return wv;
+	}
+};
+
 class TTable {
 	public:
 		TTable(int _n);
@@ -40,7 +96,7 @@ class TTable {
 		void ShowTTable(int index, Dict& d);
 		void ShowTTable(Dict& d);
 		void copyFromKneserNeyLM(bool copyAll = false,bool copyAllProb = false);
-		static WordVector makeWordVector(WordVector& trg,int index,int history, WordID kNULL);
+		// static WordVector makeWordVector(WordVector& trg,int index,int history, WordID kNULL);
 		//void ExportToFile(const char* filename, Dict& d);
 
 	private:
@@ -52,7 +108,7 @@ class TTable {
 		WV2D bow;//backoff weight
 		LM lm;
 		int n;//how many target words to consider in P(f|e_{i},e_{i+1},e_{i+n}). this corresponds to history + 1
-		
+
 };
 
 #endif

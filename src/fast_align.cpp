@@ -132,6 +132,7 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("mean_srclen_multiplier,m",po::value<double>()->default_value(1), "When --force_align, use this source length multiplier")
 		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.")
 		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
+		("context,C", po::value<int>()->default_value(0),"type of context vector to use: previous words = 0, left right alternate = 1")
 		("show_ttable","whether to output ttable");
 	po::options_description clo("Command line options");
 	clo.add_options()
@@ -202,6 +203,13 @@ int main(int argc, char** argv) {
 	double prob_align_not_null = 1.0 - prob_align_null;
 	const double alpha = conf["alpha"].as<double>();
 	const bool favor_diagonal = conf.count("favor_diagonal");
+
+	WordVector (*contextVector)(WordVector&,int,int,WordID) = ContextVector::previousWordVector;
+	if(conf.count("context") > 0){
+		if(conf["context"].as<int>()==1){
+			contextVector = ContextVector::leftRightAlternateVector;	
+		}
+	}
 
 	if (smooth == VB && alpha <= 0.0) {
 		cerr << "--alpha must be > 0\n";
@@ -331,7 +339,7 @@ int main(int argc, char** argv) {
 					if (favor_diagonal){
 						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, src.size(), trg.size(), diagonal_tension) / az;
 					}
-					probs[i] = t2s.prob(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
+					probs[i] = t2s.prob(contextVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					sum += probs[i];
 				}
 				if (final_iteration) {
@@ -391,12 +399,12 @@ int main(int argc, char** argv) {
 					for (unsigned i = 1; i <= trg.size(); ++i) {
 						const double p = probs[i] / sum;
 						if(smooth == KN){ 
-							WordVector vec = TTable::makeWordVector(trg,i-1,HISTORY,kNULL);
+							WordVector vec = contextVector(trg,i-1,HISTORY,kNULL);
 							reverse(vec.begin(),vec.end());
 							t2s.lm.addNgram(vec,f_j,p);
 						}
 						else{	
-							WordVector wv = TTable::makeWordVector(trg, i-1, HISTORY, kNULL);
+							WordVector wv = contextVector(trg, i-1, HISTORY, kNULL);
 							t2s.Increment(wv, f_j, p);
 							
 						}
@@ -570,7 +578,7 @@ int main(int argc, char** argv) {
 					if (favor_diagonal){
 						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
 					}
-					double pat = t2s.backoffProb(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
+					double pat = t2s.backoffProb(contextVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					if (pat > max_pat){
 						max_pat = pat;
 						a_j = i;

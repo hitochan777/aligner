@@ -183,24 +183,7 @@ void TTable::ShowTTable(Dict& d){
 	_ShowTTable(n,d);
 }
 
-WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID kNULL){//index start from 0
-	int trglen = trg.size();
-	if(history<0){
-		throw invalid_argument("history must be non-negative integer.");
-	}	
-	if( index < 0 || index >= trglen ){
-		throw invalid_argument("index is out of range in makeWordVector.");	
-	}
-	if( index - history < 0 ){
-		WordVector wv;
-		for(int i = 0; i < history - index; ++i){
-			wv.push_back(kNULL);
-		}
-		wv.insert(wv.end(),&trg[0],&trg[index]+1);
-		return wv;
-	}
-	return WordVector(&trg[index]-history,&trg[index]+1);
-}	
+
 
 void TTable::_ShowCounts(int index, Dict& d) {
 	for (WordVector2Word2Double::const_iterator it = counts[index].begin(); it != counts[index].end(); ++it) {
@@ -226,19 +209,4 @@ void TTable::_ShowTTable(int index, Dict& d){
 	}
 
 }
-
-/*void TTable::ExportToFile(const char* filename, Dict& d) {
-  ofstream file(filename);
-  for (unsigned i = 0; i < ttables[n].size(); ++i) {
-  const string& a = d.Convert(i);
-  Word2Double& cpd = ttables[i];
-  for (Word2Double::iterator it = cpd.begin(); it != cpd.end(); ++it) {
-  const string& b = d.Convert(it->first);
-  double c = log(it->second);
-  file << a << '\t' << b << '\t' << c << endl;
-  }
-  }
-  file.close();
-  }*/
-
 
