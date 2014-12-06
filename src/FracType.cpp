@@ -10,7 +10,9 @@ double logAdd(double logx, double logy)
 double discountMass(FracType& ft, vector<double>& discount){
 	double mass=0;
 	double n3=1-ft[0]-ft[1]-ft[2];
-	if(n3<0)n3=ft[3];
+	if(n3 < ft[3]){
+		n3 = ft[3];
+	}
 	mass=(LogDouble)discount[0]*ft[1]+(LogDouble)discount[1]*ft[2]+
 		(LogDouble)discount[2]*(LogDouble)n3;
 	return mass;
