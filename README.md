@@ -12,11 +12,15 @@ A variant of `fast_align` is included in the [`cdec` translation system](http://
 
 ## Input format
 
+There are two input formats. The first format is identical to the original aligner(i.e. fast_algin)
+### Putting parallel sentences to one file.
 Input to `fast_align` must be tokenized and aligned into parallel sentences. Each line is a source language sentence and its target language translation, separated by a triple pipe symbol with leading and trailing white space (` ||| `). An example 3-sentence German–English parallel corpus is:
 
     doch jetzt ist der Held gefallen . ||| but now the hero has fallen .
     neue Modelle werden erprobt . ||| new models are being tested .
     doch fehlen uns neue Ressourcen . ||| but we lack new resources .
+### Using different files for source and target language corpuses.
+    If you use this format, make sure to specify that you use two input files, using `--finput` and `--einupt` options; otherwise the program will not work.
 
 ## Compiling and using `fast_align`
 
