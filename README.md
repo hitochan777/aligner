@@ -1,7 +1,7 @@
-fast_align
+aligner
 ==========
 
-`fast_align` is a simple, fast, unsupervised word aligner.
+`aligner` is a word aligner which has inherited some of the basic functions that fast_align has. 
 
 If you use this software, please cite:
 * [Chris Dyer](http://www.cs.cmu.edu/~cdyer), [Victor Chahuneau](http://victor.chahuneau.fr), and [Noah A. Smith](http://www.cs.cmu.edu/~nasmith). (2013). [A Simple, Fast, and Effective Reparameterization of IBM Model 2](http://www.ark.cs.cmu.edu/cdyer/fast_valign.pdf). In *Proc. of NAACL*.
