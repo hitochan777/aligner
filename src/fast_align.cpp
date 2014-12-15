@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
 							t2s.Increment(wv, f_j, p);
 							
 						}
-						emp_feat += DiagonalAlignment::Feature(j, i,src.size(),trg.size()) * p;//what is this line doing?
+						emp_feat += DiagonalAlignment::Feature(j+1, i,src.size(),trg.size()) * p;//what is this line doing?
 					}
 				}
 				likelihood += log(sum);
