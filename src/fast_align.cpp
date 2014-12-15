@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
 							t2s.Increment(wv, f_j, p);
 							
 						}
-						emp_feat += DiagonalAlignment::Feature(j, i, trg.size(), src.size()) * p;//what is this line doing?
+						emp_feat += DiagonalAlignment::Feature(j, i,src.size(),trg.size()) * p;//what is this line doing?
 					}
 				}
 				likelihood += log(sum);
@@ -572,11 +572,11 @@ int main(int argc, char** argv) {
 				}
 				double az = 0;
 				if (favor_diagonal){
-					az = DiagonalAlignment::ComputeZ(j+1, trg.size(), src.size(), diagonal_tension) / prob_align_not_null;
+					az = DiagonalAlignment::ComputeZ(j+1, src.size(),trg.size(),diagonal_tension) / prob_align_not_null;
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
-						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
+						prob_a_j = DiagonalAlignment::UnnormalizedProb(j+1, i, src.size(),trg.size(), diagonal_tension) / az;
 					}
 					double pat = t2s.backoffProb(contextVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					if (pat > max_pat){
