@@ -25,6 +25,5 @@ fast_align
 dump.*
 
 # executables
-a.out 
-aligner
-aligner_v2
+aligner*
+
