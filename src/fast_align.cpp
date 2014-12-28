@@ -22,6 +22,7 @@ struct PairHash {
  * 
 */
 Dict d;// this variable is going to be used throughout this program
+const WordID kNULL = d.Convert("<eps>");
 double likelihood = 0;
 double base2_likelihood = 0;
 double denom = 0.0;
@@ -34,7 +35,7 @@ unordered_map<pair<short, short>, unsigned,PairHash > size_counts;
 
 /***********************************************************************/
 void printVector(const vector<unsigned>& v){
-	for(int i = 0;i<v.size();++i){
+	for(unsigned int i = 0;i<v.size();++i){
 		cerr<<d.Convert(v[i])<<" ";
 	}
 	cerr<<endl<<flush;
@@ -181,7 +182,6 @@ int main(int argc, char** argv) {
 	const int ITERATIONS = (conf.count("force_align")) ? 0 : conf["iterations"].as<unsigned>();
 	//const double BEAM_THRESHOLD = pow(10.0, conf["beam_threshold"].as<double>());
 	const bool use_null = (conf.count("no_null_word") == 0);
-	const WordID kNULL = d.Convert("<eps>");
 	const bool add_viterbi = (conf.count("no_add_viterbi") == 0);
 	//const bool output_parameters = (conf.count("force_align")) ? false : conf.count("output_parameters");
 	double diagonal_tension = conf["diagonal_tension"].as<double>();
