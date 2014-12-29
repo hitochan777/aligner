@@ -402,11 +402,11 @@ void LM::calculateDiscounts(vector<vector<vector<double> > >& discounts, bool lo
 		vector<vector<double> > discount(d.max());
 		discounts.push_back(discount);
 		vector<vector<double> > coc(d.max());
-		for(unsigned int j = 0;j<d.max();++j){
+		for(unsigned int j = 0;j < d.max();++j){
 			coc[j].resize(4,0);
 		}
 		collectCountofCount(_root,coc,i+1,logrized,kNULL);
-		calculateDiscount(coc,discounts[i]);
+		calculateDiscount(coc,discounts[i],i);
 		/*for(int j=0;j<(int)coc.size();j++){
 			cerr<<"n"<<j+1<<": "<<coc[j]<<endl;
 		}*/
@@ -416,23 +416,37 @@ void LM::calculateDiscounts(vector<vector<vector<double> > >& discounts, bool lo
 	}
 }
 
-void calculateDiscount(vector<vector<double> >& coc, vector<vector<double> >& discount){
-	discount.clear();
+void calculateDiscount(vector<vector<double> >& coc, vector<vector<double> >& discount,int order){
 	for(unsigned int e_i = 0;e_i<d.max();++e_i){
+		discount[e_i].clear();
 		double n1=coc[e_i][0];
 		double n2=coc[e_i][1];
 		double n3=coc[e_i][2];
 		double n4=coc[e_i][3];
 		double Y=n1/(n1+2*n2);
-		discount[e_i].push_back(1-2*Y*n2/n1);
-		discount[e_i].push_back(2-3*Y*n3/n2);
-		discount[e_i].push_back(3-4*Y*n4/n3);
-		discount[e_i].push_back(3-4*Y*n4/n3);
-		for(size_t i=1;i<discount.size();i++){
+		double D1 = 0.0, D2 = 0.0, D3 = 0.0;
+		if(n1>1E-10){
+			D1 = 1-2*Y*n2/n1;
+		}
+		if(n2>1E-10){
+			D2 = 2-3*Y*n3/n2;
+		}
+		if(n3>1E-10){
+			D3 = 3-4*Y*n4/n3;
+		}
+		discount[e_i].push_back(D1);
+		discount[e_i].push_back(D2);
+		discount[e_i].push_back(D3);
+		discount[e_i].push_back(D3);
+		cout<<d.Convert(e_i+1)<<"::n1="<<n1<<",n2="<<n2<<",n3="<<n3<<",n4="<<n4<<endl;
+		for(size_t i=1;i<discount[e_i].size();i++){
 			if(discount[e_i][i]<0){
 				cerr<<"discount["<<e_i<<"] "<<i<<":"<<discount[e_i][i]<<endl;
 				discount[e_i][i]=discount[e_i][i-1];
 			}
+		}
+		if(order==0){
+			break;
 		}
 	}
 }
@@ -537,10 +551,11 @@ void LM::collectCountofCount(Node& node, vector<vector<double> >& coc, int order
 		for(ZMap<WordID,FracType>::iterator typeIter=node.types.begin();typeIter!=node.types.end();typeIter++){
 			FracType& ftype=typeIter->second;
 			for(int j=1;j<5;j++){
-				coc[e_i][j-1]+=ftype[j];//coc[j] = E[n_{j+1}](0<=j<=3)
+				coc[e_i-1][j-1] += ftype[j];//coc[j] = E[n_{j+1}](0<=j<=3)
 			}
 		}
 	}
+	return ;
 }
 
 // void LM::resetVocab(){
@@ -560,7 +575,13 @@ void LM::knEstimate(bool interpolate){
 	vector<vector<vector<double> > > discounts;//discounts[order][e_i][count];
 	setKNcounts();
 	calculateDiscounts(discounts);
-	adEstimate(_root, discounts, 0,kNULL);
+	// for(unsigned int i = 0;i<discounts[1].size();++i){
+	// 	for(unsigned int j = 0;j<discounts[1][i].size();++j){
+	// 		cout<<discounts[1][i][j]<<" ";	
+	// 	}	
+	// 	cout<<endl;
+	// }
+	adEstimate(_root, discounts, 0, kNULL);
 	computeBOW(interpolate);
 }
 
@@ -578,7 +599,7 @@ void LM::knEstimate(bool interpolate){
 // }
 
 void LM::adEstimate(Node& node, vector<vector<vector<double> > >& discounts, int order, WordID e_i){
-	vector<double> discount=discounts[order][e_i-1];
+	vector<double> discount = discounts[order][e_i-1];
 	double subtract=0;
 	double total=0;//total = \sum_{w} E[c(uw)] = E[c(u?)]
 	if(node.probs.size()>0){
@@ -589,14 +610,29 @@ void LM::adEstimate(Node& node, vector<vector<vector<double> > >& discounts, int
 			double dMass=discountMass(ft,discount);
 			//cerr<<"end getting discountMass"<<endl;
 			//p(c(uw)=1)*D_{1} + p(c(uw)=2)*D_{2} + p(c(uw)>=3)*D_{3+}
+			// if(iter->second<dMass){
+			// 	cerr<<"iter->second is smaller than dMass"<<endl;
+			// 	cerr<<"ft[1]="<<ft[1]<<",ft[2]="<<ft[2]<<",ft[3]="<<ft[3]<<endl;
+			// 	cerr<<"iter->second="<<iter->second<<",dMass="<<dMass<<endl;
+			// 	cerr<<"iter->second-dMass="<<iter->second-dMass<<endl;
+			// 	exit(1);
+			// }
 			iter->second-=dMass;
+			if(iter->second<0){
+				iter->second = 1E-10;
+			}
 			subtract+=dMass;
 		}
 		node.bow=log10(subtract)-log10(total);
 	}
 
 	for(ZMap<WordID,double>::iterator iter=node.probs.begin();iter!=node.probs.end();iter++){
+		// double tmp = iter->second;
 		iter->second=log10(iter->second)-log10(total);
+		// if(std::isnan(iter->second)){
+		// 	cerr<<"isnan encountered:iter->second="<<tmp<<",total="<<total<<endl;
+		// 	exit(1);
+		// }
 	}
 
 	for(ZMap<WordID,Node>::iterator iter=node.childs.begin();iter!=node.childs.end();iter++){

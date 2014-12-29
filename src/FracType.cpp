@@ -13,8 +13,7 @@ double discountMass(FracType& ft, vector<double>& discount){
 	if(n3 < ft[3]){
 		n3 = ft[3];
 	}
-	mass=(LogDouble)discount[0]*ft[1]+(LogDouble)discount[1]*ft[2]+
-		(LogDouble)discount[2]*(LogDouble)n3;
+	mass=(LogDouble)discount[0]*ft[1]+(LogDouble)discount[1]*ft[2]+(LogDouble)discount[2]*(LogDouble)n3;
 	return mass;
 }
 

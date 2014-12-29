@@ -57,7 +57,7 @@ class LMStat {
 
 enum DiscountType{D_AD,D_WB};
 
-void calculateDiscount(vector<vector<double> >& coc, vector<vector<double> >& discount);
+void calculateDiscount(vector<vector<double> >& coc, vector<vector<double> >& discount,int order);
 
 class LM{
 	public:
