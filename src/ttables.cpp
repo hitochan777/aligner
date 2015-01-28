@@ -3,7 +3,7 @@
 
 using namespace std;
 
-TTable::TTable(int _n,int p_threshold){
+TTable::TTable(int _n,double p_threshold){
 	this->n = _n;//length of vector e
 	prune_threshold = p_threshold;
 	ttables.resize(_n+1);//index of ttable and counts shows the length of vector e

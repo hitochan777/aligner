@@ -196,7 +196,7 @@ int main(int argc, char** argv) {
 	const bool DO_TEST = !testset.empty() || !ftestset.empty();
 	const int smooth = conf["smoothing"].as<int>();
 	const int train_line = conf["train_line"].as<int>();
-	const int prune_threshold = conf["prune"].as<int>();
+	const double prune_threshold = conf["prune"].as<double>();
 	if (conf.count("force_align")){
 		testset = fname;
 	}
