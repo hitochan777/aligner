@@ -82,7 +82,7 @@ struct ContextVector{
 
 class TTable {
 	public:
-		TTable(int _n);
+		TTable(int _n, int p_threshold);
 		double prob(const WordVector& e, const WordID& f);
 		double backoffProb(const WordVector& e, const WordID& f);
 		void Increment(const WordVector& e, const int& f);
@@ -102,6 +102,8 @@ class TTable {
 	private:
 		void _ShowCounts(int index,Dict& d);
 		void _ShowTTable(int index,Dict& d);
+		void prune();
+		int prune_threshold;
 	public:
 		VWV2WD ttables;
 		VWV2WD counts;

@@ -3,8 +3,9 @@
 
 using namespace std;
 
-TTable::TTable(int _n){
+TTable::TTable(int _n,int p_threshold){
 	this->n = _n;//length of vector e
+	prune_threshold = p_threshold;
 	ttables.resize(_n+1);//index of ttable and counts shows the length of vector e
 	counts.resize(_n+1);
 }
@@ -79,6 +80,21 @@ void TTable::NormalizeVB(const double alpha) {
 	counts.clear();
 	VWV2WD().swap(counts);
 	counts.resize(n+1);
+}
+
+void TTable::prune(){
+	if(prune_threshold==-1){
+		return ;
+	}
+	for (WordVector2Word2Double::iterator it = counts[n].begin(); it != counts[n].end(); ++it) {
+		Word2Double& wd = it->second;
+		for (Word2Double::iterator it2 = wd.begin(); it2 != wd.end(); ++it2){
+			if(it2->second < prune_threshold){
+				counts[n][it->first].erase(it2->first);
+				// ttable[n][it->first].erase(it2->first);
+			}
+		}
+	}
 }
 
 void TTable::Normalize(bool lower) {

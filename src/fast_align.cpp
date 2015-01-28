@@ -20,7 +20,7 @@ struct PairHash {
 /**************declaration of global variable**************************
  * defined here so that printProcess() can use these.
  * 
-*/
+ */
 Dict d;// this variable is going to be used throughout this program
 double likelihood = 0;
 double base2_likelihood = 0;
@@ -133,7 +133,8 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.")
 		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
 		("context,C", po::value<int>()->default_value(0),"type of context vector to use: previous words = 0, left right alternate = 1")
-		("show_ttable","whether to output ttable");
+		("show_ttable","whether to output ttable")
+		("prune,p",po::value<int>()->default_value(-1),"pruning threshold counts, default to no pruning");
 	po::options_description clo("Command line options");
 	clo.add_options()
 		("config", po::value<string>(), "Configuration file")
@@ -195,6 +196,7 @@ int main(int argc, char** argv) {
 	const bool DO_TEST = !testset.empty() || !ftestset.empty();
 	const int smooth = conf["smoothing"].as<int>();
 	const int train_line = conf["train_line"].as<int>();
+	const int prune_threshold = conf["prune"].as<int>();
 	if (conf.count("force_align")){
 		testset = fname;
 	}
@@ -216,7 +218,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	TTable t2s(HISTORY+1);
+	TTable t2s(HISTORY+1, prune_threshold);
 	Word2Word2Double t2s_viterbi;
 	double tot_len_ratio = 0;
 	double mean_srclen_multiplier = 0;
@@ -406,7 +408,7 @@ int main(int argc, char** argv) {
 						else{	
 							WordVector wv = contextVector(trg, i-1, HISTORY, kNULL);
 							t2s.Increment(wv, f_j, p);
-							
+
 						}
 						emp_feat += DiagonalAlignment::Feature(j+1, i,src.size(),trg.size()) * p;//what is this line doing?
 					}
