@@ -83,20 +83,22 @@ void TTable::NormalizeVB(const double alpha) {
 }
 
 void TTable::prune(){
-	cout<<"pruning..."<<endl;
 	if(prune_threshold==-1){
 		return ;
 	}
+	long long count = 0;
+	cout<<"pruning..."<<endl;
 	for (WordVector2Word2Double::iterator it = counts[n].begin(); it != counts[n].end(); ++it) {
 		Word2Double& wd = it->second;
 		for (Word2Double::iterator it2 = wd.begin(); it2 != wd.end(); ++it2){
 			if(it2->second < prune_threshold){
 				counts[n][it->first].erase(it2->first);
+				count++;
 				// ttable[n][it->first].erase(it2->first);
 			}
 		}
 	}
-	cout<<"pruning end"<<endl;
+	cout<<"pruned "<<count<<" in total"<<endl;
 }
 
 void TTable::Normalize(bool lower) {
