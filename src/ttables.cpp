@@ -83,6 +83,7 @@ void TTable::NormalizeVB(const double alpha) {
 }
 
 void TTable::prune(){
+	cout<<"pruning..."<<endl;
 	if(prune_threshold==-1){
 		return ;
 	}
@@ -95,9 +96,11 @@ void TTable::prune(){
 			}
 		}
 	}
+	cout<<"pruning end"<<endl;
 }
 
 void TTable::Normalize(bool lower) {
+	prune();
 	ttables.swap(counts);
 	for (WordVector2Word2Double::iterator it = ttables[n].begin(); it != ttables[n].end(); ++it) {
 		double tot = 0;
@@ -113,7 +116,7 @@ void TTable::Normalize(bool lower) {
 						cerr << "bad_alloc caught: " << ba.what() << '\n';
 						cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
 						return; 
-					}	      
+					}
 				}
 			}
 			tot += it2->second;
