@@ -197,6 +197,7 @@ int main(int argc, char** argv) {
 	const int smooth = conf["smoothing"].as<int>();
 	const int train_line = conf["train_line"].as<int>();
 	const double prune_threshold = conf["prune"].as<double>();
+	cout<<"prune_threshold="<<prune_threshold<<endl;
 	if (conf.count("force_align")){
 		testset = fname;
 	}
