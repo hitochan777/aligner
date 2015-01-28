@@ -134,7 +134,7 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
 		("context,C", po::value<int>()->default_value(0),"type of context vector to use: previous words = 0, left right alternate = 1")
 		("show_ttable","whether to output ttable")
-		("prune,p",po::value<int>()->default_value(-1),"pruning threshold counts, default to no pruning");
+		("prune,p",po::value<double>()->default_value(-1),"pruning threshold counts, default to no pruning");
 	po::options_description clo("Command line options");
 	clo.add_options()
 		("config", po::value<string>(), "Configuration file")
