@@ -509,7 +509,7 @@ void LM::computeBOWByLayer(Node& node, WordVector& context, int order, bool inte
 		}
 		/*
 		 * numerator = 1 - \sum_{w : uw is in model}p(w|u)  
-		 * denumerator = 1 - \sum_{w : u'w is in model}p(w|u') 
+		 * denumerator = 1 - \sum_{w : uw is in model}p(w|u') 
 		 * therefore,
 		 * \beta{uw} = numerator/denumerator
 		 */
