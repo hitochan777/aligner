@@ -623,7 +623,7 @@ void LM::adEstimate(Node& node, vector<vector<double> >& discounts, int order){
 				FracType& ft=node.types[iter->first];
 				double mass=0;
 				double n3=1-ft[0]-ft[1]-ft[2];
-				if(n3 < 0){
+				if(n3 < ft[3]){
 					n3 = ft[3];
 				}
 				ft.print(cerr);

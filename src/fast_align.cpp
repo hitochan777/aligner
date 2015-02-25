@@ -20,7 +20,7 @@ struct PairHash {
 /**************declaration of global variable**************************
  * defined here so that printProcess() can use these.
  * 
-*/
+ */
 Dict d;// this variable is going to be used throughout this program
 double likelihood = 0;
 double base2_likelihood = 0;
@@ -33,6 +33,13 @@ int toks = 0;
 unordered_map<pair<short, short>, unsigned,PairHash > size_counts;
 
 /***********************************************************************/
+void printVector(const vector<unsigned>& v){
+	for(int i = 0;i<v.size();++i){
+		cerr<<d.Convert(v[i])<<" ";
+	}
+	cerr<<endl<<flush;
+	return ;
+}
 
 void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 	static const unsigned kDIV = d.Convert("|||");
@@ -45,12 +52,14 @@ void ParseLine(const string& line,vector<unsigned>* src,vector<unsigned>* trg){
 		src->push_back(tmp[i]);
 		++i;
 	}
+	// printVector(*src);
 	if (i < tmp.size() && tmp[i] == kDIV) {
 		++i;
 		for (; i < tmp.size() ; ++i){
 			trg->push_back(tmp[i]);
 		}
 	}
+	// printVector(*trg);
 }
 
 void ParseLineFromSeparateFiles(const string& fline,const string& eline,vector<unsigned>* src,vector<unsigned>* trg){
@@ -61,11 +70,13 @@ void ParseLineFromSeparateFiles(const string& fline,const string& eline,vector<u
 	for(unsigned i = 0;i < tmp.size();++i) {
 		src->push_back(tmp[i]);
 	}
+	// printVector(*src);
 	tmp.clear();
 	d.ConvertWhitespaceDelimitedLine(eline, &tmp);
 	for(unsigned i = 0;i < tmp.size();++i) {
 		trg->push_back(tmp[i]);
 	}
+	// printVector(*trg);
 	return ;
 }
 
@@ -121,7 +132,9 @@ bool InitCommandLine(int argc, char** argv, po::variables_map* conf) {
 		("mean_srclen_multiplier,m",po::value<double>()->default_value(1), "When --force_align, use this source length multiplier")
 		("history",po::value<int>()->default_value(0), "How many histories to use. When history is 0, translation probability is probability of ONE word to the other ONE word.")
 		("smoothing,S",po::value<int>()->default_value(NO),"smoothing method: Maximum likelihood = 0, Variational Bayes = 1, Modified Kneser-ney = 2")
-		("show_ttable","whether to output ttable");
+		("context,C", po::value<int>()->default_value(0),"type of context vector to use: previous words = 0, left right alternate = 1")
+		("show_ttable","whether to output ttable")
+		("prune,P",po::value<double>()->default_value(-1),"pruning threshold counts, default to no pruning");
 	po::options_description clo("Command line options");
 	clo.add_options()
 		("config", po::value<string>(), "Configuration file")
@@ -183,6 +196,7 @@ int main(int argc, char** argv) {
 	const bool DO_TEST = !testset.empty() || !ftestset.empty();
 	const int smooth = conf["smoothing"].as<int>();
 	const int train_line = conf["train_line"].as<int>();
+	const double prune_threshold = conf["prune"].as<double>();
 	if (conf.count("force_align")){
 		testset = fname;
 	}
@@ -192,12 +206,19 @@ int main(int argc, char** argv) {
 	const double alpha = conf["alpha"].as<double>();
 	const bool favor_diagonal = conf.count("favor_diagonal");
 
+	WordVector (*contextVector)(WordVector&,int,int,WordID) = ContextVector::previousWordVector;
+	if(conf.count("context") > 0){
+		if(conf["context"].as<int>()==1){
+			contextVector = ContextVector::leftRightAlternateVector;	
+		}
+	}
+
 	if (smooth == VB && alpha <= 0.0) {
 		cerr << "--alpha must be > 0\n";
 		return 1;
 	}
 
-	TTable t2s(HISTORY+1);
+	TTable t2s(HISTORY+1, prune_threshold);
 	Word2Word2Double t2s_viterbi;
 	double tot_len_ratio = 0;
 	double mean_srclen_multiplier = 0;
@@ -303,24 +324,24 @@ int main(int argc, char** argv) {
 			for (unsigned j = 0; j < src.size(); ++j) {
 				const unsigned& f_j = src[j];
 				double sum = 0;
-				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
+				double prob_a_j = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
 					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
-						prob_a_i = prob_align_null;
+						prob_a_j = prob_align_null;
 					}
-					probs[0] = t2s.prob(wv, f_j) * prob_a_i;
+					probs[0] = t2s.prob(wv, f_j) * prob_a_j;
 					sum += probs[0];
 				}
 				double az = 0;
 				if (favor_diagonal){
-					az = DiagonalAlignment::ComputeZ(j+1, src.size(), trg.size(), diagonal_tension) / prob_align_not_null;
+					az = DiagonalAlignment::ComputeZ(j + 1, src.size(), trg.size(), diagonal_tension) / prob_align_not_null;
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
-						prob_a_i = DiagonalAlignment::UnnormalizedProb(j + 1, i, src.size(), trg.size(), diagonal_tension) / az;
+						prob_a_j = DiagonalAlignment::UnnormalizedProb(j + 1, i, src.size(), trg.size(), diagonal_tension) / az;
 					}
-					probs[i] = t2s.prob(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
+					probs[i] = t2s.prob(contextVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					sum += probs[i];
 				}
 				if (final_iteration) {
@@ -380,16 +401,16 @@ int main(int argc, char** argv) {
 					for (unsigned i = 1; i <= trg.size(); ++i) {
 						const double p = probs[i] / sum;
 						if(smooth == KN){ 
-							WordVector vec = TTable::makeWordVector(trg,i-1,HISTORY,kNULL);
+							WordVector vec = contextVector(trg,i-1,HISTORY,kNULL);
 							reverse(vec.begin(),vec.end());
 							t2s.lm.addNgram(vec,f_j,p);
 						}
 						else{	
-							WordVector wv = TTable::makeWordVector(trg, i-1, HISTORY, kNULL);
+							WordVector wv = contextVector(trg, i-1, HISTORY, kNULL);
 							t2s.Increment(wv, f_j, p);
-							
+
 						}
-						emp_feat += DiagonalAlignment::Feature(j, i, trg.size(), src.size()) * p;//what is this line doing?
+						emp_feat += DiagonalAlignment::Feature(j+1, i,src.size(),trg.size()) * p;//what is this line doing?
 					}
 				}
 				likelihood += log(sum);
@@ -453,7 +474,12 @@ int main(int argc, char** argv) {
 					break;
 				case NO:
 				default:
-					t2s.Normalize();
+					if(semi_final_iteration){
+						t2s.Normalize(true);
+					}
+					else{
+						t2s.Normalize(false);
+					}
 					break;
 			}
 			//prob_align_null *= 0.8; // XXX
@@ -461,17 +487,13 @@ int main(int argc, char** argv) {
 			prob_align_not_null = 1.0 - prob_align_null;
 		}
 		if(ONE_INPUT_FILE){
-			in.close();	
+			in.close();
 		}
 		else{
 			fin.close();
 			ein.close();	
 		}
 	}
-	/*if (!conditional_probability_filename.empty()) {
-	  cerr << "conditional probabilities: " << conditional_probability_filename << endl;
-	  t2s.ExportToFile(conditional_probability_filename.c_str(), d);
-	  }*/
 
 	if(tof!=stderr){
 		fclose(tof);
@@ -541,24 +563,24 @@ int main(int argc, char** argv) {
 				double sum = 0;
 				int a_j = 0;
 				double max_pat = 0;
-				double prob_a_i = 1.0 / (trg.size() + use_null);  // uniform (model 1)
+				double prob_a_j = 1.0 / (trg.size() + use_null);  // uniform (model 1)
 				if (use_null) {
 					WordVector wv(HISTORY+1,kNULL);
 					if (favor_diagonal){
-						prob_a_i = prob_align_null;
+						prob_a_j = prob_align_null;
 					}
-					max_pat = t2s.backoffProb(wv, f_j) * prob_a_i;
+					max_pat = t2s.backoffProb(wv, f_j) * prob_a_j;
 					sum += max_pat;
 				}
 				double az = 0;
 				if (favor_diagonal){
-					az = DiagonalAlignment::ComputeZ(j+1, trg.size(), src.size(), diagonal_tension) / prob_align_not_null;
+					az = DiagonalAlignment::ComputeZ(j+1, src.size(),trg.size(),diagonal_tension) / prob_align_not_null;
 				}
 				for (unsigned i = 1; i <= trg.size(); ++i) {
 					if (favor_diagonal){
-						prob_a_i = DiagonalAlignment::UnnormalizedProb(j + 1, i, trg.size(), src.size(), diagonal_tension) / az;
+						prob_a_j = DiagonalAlignment::UnnormalizedProb(j+1, i, src.size(),trg.size(), diagonal_tension) / az;
 					}
-					double pat = t2s.backoffProb(TTable::makeWordVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_i;
+					double pat = t2s.backoffProb(contextVector(trg,i-1,HISTORY,kNULL), f_j) * prob_a_j;
 					if (pat > max_pat){
 						max_pat = pat;
 						a_j = i;

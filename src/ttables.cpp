@@ -3,8 +3,9 @@
 
 using namespace std;
 
-TTable::TTable(int _n){
+TTable::TTable(int _n,double p_threshold){
 	this->n = _n;//length of vector e
+	prune_threshold = p_threshold;
 	ttables.resize(_n+1);//index of ttable and counts shows the length of vector e
 	counts.resize(_n+1);
 }
@@ -77,25 +78,48 @@ void TTable::NormalizeVB(const double alpha) {
 		}
 	}
 	counts.clear();
+	VWV2WD().swap(counts);
 	counts.resize(n+1);
 }
 
-void TTable::Normalize() {
+void TTable::prune(){
+	if(prune_threshold==-1){
+		return ;
+	}
+	long long count = 0;
+	cout<<"pruning..."<<endl;
+	for (WordVector2Word2Double::iterator it = counts[n].begin(); it != counts[n].end(); ++it) {
+		Word2Double& wd = it->second;
+		for (Word2Double::iterator it2 = wd.begin(); it2 != wd.end(); ++it2){
+			if(it2->second < prune_threshold){
+				counts[n][it->first].erase(it2->first);
+				count++;
+				// ttable[n][it->first].erase(it2->first);
+			}
+		}
+	}
+	cout<<"pruned "<<count<<" in total"<<endl;
+}
+
+void TTable::Normalize(bool lower) {
+	prune();
 	ttables.swap(counts);
 	for (WordVector2Word2Double::iterator it = ttables[n].begin(); it != ttables[n].end(); ++it) {
 		double tot = 0;
 		Word2Double& cpd = it->second;
 		for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-			for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
-				try{
-					ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
-						+= ttables[n][it->first][it2->first];
+			if(lower){
+				for(int i = 1;i <= n; ++i ){//calculate counts for 1~(n-1) grams from n-gram counts
+					try{
+						ttables[n-i][WordVector((it->first).begin()+i,(it->first).end())][it2->first]
+							+= ttables[n][it->first][it2->first];
+					}
+					catch (bad_alloc& ba){
+						cerr << "bad_alloc caught: " << ba.what() << '\n';
+						cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
+						return; 
+					}
 				}
-				catch (bad_alloc& ba){
-					cerr << "bad_alloc caught: " << ba.what() << '\n';
-					cerr << "i="<<i<<" "<<"it->first.size()=="<<it->first.size()<<endl;
-					return; 
-				}	      
 			}
 			tot += it2->second;
 		}
@@ -106,23 +130,25 @@ void TTable::Normalize() {
 			it2->second /= tot;
 		}
 	}
-
-	for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~n grams 
-		for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
-			double tot = 0;
-			Word2Double& cpd = it->second;
-			for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-				tot += it2->second;
-			}
-			if (!tot){
-				tot = 1;
-			}
-			for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
-				it2->second /= tot;
+	if(lower){
+		for(int i = 0;i <= n - 1; ++i){//normalize probabilities for 1~(n-1) grams 
+			for (WordVector2Word2Double::iterator it = ttables[i].begin(); it != ttables[i].end(); ++it) {
+				double tot = 0;
+				Word2Double& cpd = it->second;
+				for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
+					tot += it2->second;
+				}
+				if (!tot){
+					tot = 1;
+				}
+				for (Word2Double::iterator it2 = cpd.begin(); it2 != cpd.end(); ++it2){
+					it2->second /= tot;
+				}
 			}
 		}
 	}
 	counts.clear();
+	VWV2WD().swap(counts);
 	counts.resize(n+1);
 }
 
@@ -133,6 +159,7 @@ void TTable::copyFromKneserNeyLM(bool copyBOW, bool  copyAllProb){
 	cerr<<"kn Estimate end"<<endl;
 	//lm.write("/home/otsuki/Research/aligner/debug.txt");
 	ttables.clear();
+	VWV2WD().swap(ttables);
 	ttables.resize(n+1);
 	if(copyBOW){
 		lm.copyBOW(this->bow);
@@ -177,24 +204,7 @@ void TTable::ShowTTable(Dict& d){
 	_ShowTTable(n,d);
 }
 
-WordVector TTable::makeWordVector(WordVector& trg,int index,int history,WordID kNULL){//index start from 0
-	int trglen = trg.size();
-	if(history<0){
-		throw invalid_argument("history must be non-negative integer.");
-	}	
-	if( index < 0 || index >= trglen ){
-		throw invalid_argument("index is out of range in makeWordVector.");	
-	}
-	if( index - history < 0 ){
-		WordVector wv;
-		for(int i = 0; i < history - index; ++i){
-			wv.push_back(kNULL);
-		}
-		wv.insert(wv.end(),&trg[0],&trg[index]+1);
-		return wv;
-	}
-	return WordVector(&trg[index]-history,&trg[index]+1);
-}	
+
 
 void TTable::_ShowCounts(int index, Dict& d) {
 	for (WordVector2Word2Double::const_iterator it = counts[index].begin(); it != counts[index].end(); ++it) {
@@ -212,7 +222,7 @@ void TTable::_ShowTTable(int index, Dict& d){
 	for (WordVector2Word2Double::const_iterator it = ttables[index].begin(); it != ttables[index].end(); ++it) {
 		const Word2Double& cpd = it->second;
 		for (Word2Double::const_iterator it2 =  cpd.begin();it2!=cpd.end();++it2){
-			if(it2->second==0){
+			if(it2->second<0.1){
 			       	continue;//do not print prob with 0
 			}
 			fprintf(stderr,"Pr(%s|%s) = %lf\n", d.Convert(it2->first).c_str(), d.Convert(it->first).c_str(),it2->second);
@@ -220,19 +230,4 @@ void TTable::_ShowTTable(int index, Dict& d){
 	}
 
 }
-
-/*void TTable::ExportToFile(const char* filename, Dict& d) {
-  ofstream file(filename);
-  for (unsigned i = 0; i < ttables[n].size(); ++i) {
-  const string& a = d.Convert(i);
-  Word2Double& cpd = ttables[i];
-  for (Word2Double::iterator it = cpd.begin(); it != cpd.end(); ++it) {
-  const string& b = d.Convert(it->first);
-  double c = log(it->second);
-  file << a << '\t' << b << '\t' << c << endl;
-  }
-  }
-  file.close();
-  }*/
-
 
